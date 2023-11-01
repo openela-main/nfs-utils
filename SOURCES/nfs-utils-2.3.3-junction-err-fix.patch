@@ -1,0 +1,57 @@
+commit efefa7845601f551820fa17cb0808dbb3c3cc3dd
+Author: Steve Dickson <steved@redhat.com>
+Date:   Wed Nov 13 09:32:00 2019 -0500
+
+    junction: Fixed debug statement to compile with -Werror=format=2 flag
+    
+    Signed-off-by: Steve Dickson <steved@redhat.com>
+
+diff --git a/support/junction/xml.c b/support/junction/xml.c
+index 79b0770..7005e95 100644
+--- a/support/junction/xml.c
++++ b/support/junction/xml.c
+@@ -327,8 +327,8 @@ junction_parse_xml_read(const char *pathname, int fd, const char *name,
+ 	if (retval != FEDFS_OK)
+ 		return retval;
+ 
+-	xlog(D_CALL, "%s: XML document contained in junction:\n%.*s",
+-		__func__, len, buf);
++	xlog(D_CALL, "%s: XML document contained in junction:\n%ld.%s",
++		__func__, len, (char *)buf);
+ 
+ 	retval = junction_parse_xml_buf(pathname, name, buf, len, doc);
+ 
+commit f7c0c0dc4a02d87965d3fbbab69786ca07fdecea
+Author: Guillaume Rousse <guillomovitch@gmail.com>
+Date:   Fri Nov 22 10:20:03 2019 -0500
+
+    fix compilation with  -Werror=format on i586
+    
+    Signed-off-by: Steve Dickson <steved@redhat.com>
+
+diff --git a/support/junction/xml.c b/support/junction/xml.c
+index 7005e95..813110b 100644
+--- a/support/junction/xml.c
++++ b/support/junction/xml.c
+@@ -327,7 +327,7 @@ junction_parse_xml_read(const char *pathname, int fd, const char *name,
+ 	if (retval != FEDFS_OK)
+ 		return retval;
+ 
+-	xlog(D_CALL, "%s: XML document contained in junction:\n%ld.%s",
++	xlog(D_CALL, "%s: XML document contained in junction:\n%zu.%s",
+ 		__func__, len, (char *)buf);
+ 
+ 	retval = junction_parse_xml_buf(pathname, name, buf, len, doc);
+diff --git a/tools/locktest/testlk.c b/tools/locktest/testlk.c
+index b392f71..ea51f78 100644
+--- a/tools/locktest/testlk.c
++++ b/tools/locktest/testlk.c
+@@ -81,7 +81,7 @@ main(int argc, char **argv)
+ 		if (fl.l_type == F_UNLCK) {
+ 			printf("%s: no conflicting lock\n", fname);
+ 		} else {
+-			printf("%s: conflicting lock by %d on (%ld;%ld)\n",
++			printf("%s: conflicting lock by %d on (%zd;%zd)\n",
+ 				fname, fl.l_pid, fl.l_start, fl.l_len);
+ 		}
+ 		return 0;

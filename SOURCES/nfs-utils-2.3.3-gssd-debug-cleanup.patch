@@ -1,0 +1,290 @@
+diff -up nfs-utils-2.3.3/utils/gssd/err_util.c.orig nfs-utils-2.3.3/utils/gssd/err_util.c
+--- nfs-utils-2.3.3/utils/gssd/err_util.c.orig	2018-09-06 14:09:08.000000000 -0400
++++ nfs-utils-2.3.3/utils/gssd/err_util.c	2021-07-19 12:29:21.366829573 -0400
+@@ -70,3 +70,17 @@ int get_verbosity(void)
+ {
+ 	return verbosity;
+ }
++
++char * 
++sec2time(int value)
++{
++    static char buf[BUFSIZ];
++    int hr, min, sec;
++
++    hr = (value / 3600);
++    min = (value  - (3600*hr))/60;
++    sec = (value  - (3600*hr) - (min*60));
++    sprintf(buf, "%dh:%dm:%ds", hr, min, sec);
++    return(buf);
++}
++
+diff -up nfs-utils-2.3.3/utils/gssd/err_util.h.orig nfs-utils-2.3.3/utils/gssd/err_util.h
+--- nfs-utils-2.3.3/utils/gssd/err_util.h.orig	2018-09-06 14:09:08.000000000 -0400
++++ nfs-utils-2.3.3/utils/gssd/err_util.h	2021-07-19 12:29:21.367829599 -0400
+@@ -34,5 +34,6 @@
+ void initerr(char *progname, int verbosity, int fg);
+ void printerr(int priority, char *format, ...);
+ int get_verbosity(void);
++char * sec2time(int);
+ 
+ #endif /* _ERR_UTIL_H_ */
+diff -up nfs-utils-2.3.3/utils/gssd/gssd.c.orig nfs-utils-2.3.3/utils/gssd/gssd.c
+--- nfs-utils-2.3.3/utils/gssd/gssd.c.orig	2021-07-19 12:24:13.963644016 -0400
++++ nfs-utils-2.3.3/utils/gssd/gssd.c	2021-07-19 12:29:21.368829626 -0400
+@@ -396,7 +396,7 @@ gssd_free_client(struct clnt_info *clp)
+ 	if (refcnt > 0)
+ 		return;
+ 
+-	printerr(3, "freeing client %s\n", clp->relpath);
++	printerr(4, "freeing client %s\n", clp->relpath);
+ 
+ 	if (clp->krb5_fd >= 0)
+ 		close(clp->krb5_fd);
+@@ -417,7 +417,7 @@ gssd_free_client(struct clnt_info *clp)
+ static void
+ gssd_destroy_client(struct clnt_info *clp)
+ {
+-	printerr(3, "destroying client %s\n", clp->relpath);
++	printerr(4, "destroying client %s\n", clp->relpath);
+ 
+ 	if (clp->krb5_ev) {
+ 		event_del(clp->krb5_ev);
+@@ -494,7 +494,7 @@ scan_active_thread_list(void)
+ 			 * upcall_thread_info from the list and free it.
+ 			 */
+ 			if (tret == PTHREAD_CANCELED)
+-				printerr(3, "watchdog: thread id 0x%lx cancelled successfully\n",
++				printerr(2, "watchdog: thread id 0x%lx cancelled successfully\n",
+ 						info->tid);
+ 			saveprev = info->list.tqe_prev;
+ 			TAILQ_REMOVE(&active_thread_list, info, list);
+@@ -783,7 +783,7 @@ gssd_scan(void)
+ {
+ 	struct dirent *d;
+ 
+-	printerr(3, "doing a full rescan\n");
++	printerr(4, "doing a full rescan\n");
+ 	rewinddir(pipefs_dir);
+ 
+ 	while ((d = readdir(pipefs_dir))) {
+diff -up nfs-utils-2.3.3/utils/gssd/gssd_proc.c.orig nfs-utils-2.3.3/utils/gssd/gssd_proc.c
+--- nfs-utils-2.3.3/utils/gssd/gssd_proc.c.orig	2021-07-19 12:24:13.964644043 -0400
++++ nfs-utils-2.3.3/utils/gssd/gssd_proc.c	2021-07-19 12:29:21.368829626 -0400
+@@ -166,8 +166,9 @@ do_downcall(int k5_fd, uid_t uid, struct
+ 	unsigned int buf_size = 0;
+ 	pthread_t tid = pthread_self();
+ 
+-	printerr(2, "do_downcall(0x%x): lifetime_rec=%u acceptor=%.*s\n",
+-		tid, lifetime_rec, acceptor->length, acceptor->value);
++	if (get_verbosity() > 1)
++		printerr(2, "do_downcall(0x%lx): lifetime_rec=%s acceptor=%.*s\n",
++			tid, sec2time(lifetime_rec), acceptor->length, acceptor->value);
+ 	buf_size = sizeof(uid) + sizeof(timeout) + sizeof(pd->pd_seq_win) +
+ 		sizeof(pd->pd_ctx_hndl.length) + pd->pd_ctx_hndl.length +
+ 		sizeof(context_token->length) + context_token->length +
+@@ -193,7 +194,7 @@ do_downcall(int k5_fd, uid_t uid, struct
+ 	return;
+ out_err:
+ 	free(buf);
+-	printerr(1, "do_downcall(0x%x): Failed to write downcall!\n", tid);
++	printerr(1, "do_downcall(0x%lx): Failed to write downcall!\n", tid);
+ 	return;
+ }
+ 
+@@ -204,8 +205,9 @@ do_error_downcall(int k5_fd, uid_t uid,
+ 	char	*p = buf, *end = buf + 1024;
+ 	unsigned int timeout = 0;
+ 	int	zero = 0;
++	pthread_t tid = pthread_self();
+ 
+-	printerr(2, "doing error downcall\n");
++	printerr(2, "do_error_downcall(0x%lx): uid %d err %d\n", tid, uid, err);
+ 
+ 	if (WRITE_BYTES(&p, end, uid)) goto out_err;
+ 	if (WRITE_BYTES(&p, end, timeout)) goto out_err;
+@@ -328,6 +330,7 @@ create_auth_rpc_client(struct clnt_info
+ 	struct timeval	timeout;
+ 	struct sockaddr		*addr = (struct sockaddr *) &clp->addr;
+ 	socklen_t		salen;
++	pthread_t tid = pthread_self();
+ 
+ 	sec.qop = GSS_C_QOP_DEFAULT;
+ 	sec.svc = RPCSEC_GSS_SVC_NONE;
+@@ -361,8 +364,8 @@ create_auth_rpc_client(struct clnt_info
+ 
+ 	/* create an rpc connection to the nfs server */
+ 
+-	printerr(2, "creating %s client for server %s\n", clp->protocol,
+-			clp->servername);
++	printerr(3, "create_auth_rpc_client(0x%lx): creating %s client for server %s\n", 
++		tid, clp->protocol, clp->servername);
+ 
+ 	protocol = IPPROTO_TCP;
+ 	if ((strcmp(clp->protocol, "udp")) == 0)
+@@ -405,7 +408,8 @@ create_auth_rpc_client(struct clnt_info
+ 	if (!tgtname)
+ 		tgtname = clp->servicename;
+ 
+-	printerr(2, "creating context with server %s\n", tgtname);
++	printerr(3, "create_auth_rpc_client(0x%lx): creating context with server %s\n", 
++		tid, tgtname);
+ 	auth = authgss_create_default(rpc_clnt, tgtname, &sec);
+ 	if (!auth) {
+ 		/* Our caller should print appropriate message */
+@@ -507,9 +511,10 @@ krb5_not_machine_creds(struct clnt_info
+ 	gss_cred_id_t	gss_cred;
+ 	char		**dname;
+ 	int		err, resp = -1;
++	pthread_t tid = pthread_self();
+ 
+-	printerr(2, "krb5_not_machine_creds: uid %d tgtname %s\n", 
+-		uid, tgtname);
++	printerr(2, "krb5_not_machine_creds(0x%lx): uid %d tgtname %s\n", 
++		tid, uid, tgtname);
+ 
+ 	*chg_err = change_identity(uid);
+ 	if (*chg_err) {
+@@ -555,9 +560,10 @@ krb5_use_machine_creds(struct clnt_info
+ 	char	**ccname;
+ 	int	nocache = 0;
+ 	int	success = 0;
++	pthread_t tid = pthread_self();
+ 
+-	printerr(2, "krb5_use_machine_creds: uid %d tgtname %s\n", 
+-		uid, tgtname);
++	printerr(2, "krb5_use_machine_creds(0x%lx): uid %d tgtname %s\n", 
++		tid, uid, tgtname);
+ 
+ 	do {
+ 		gssd_refresh_krb5_machine_credential(clp->servername,
+@@ -874,6 +880,7 @@ start_upcall_thread(void (*func)(struct
+ 	pthread_t th;
+ 	struct upcall_thread_info *tinfo;
+ 	int ret;
++	pthread_t tid = pthread_self();
+ 
+ 	tinfo = alloc_upcall_thread_info();
+ 	if (!tinfo)
+@@ -896,6 +903,9 @@ start_upcall_thread(void (*func)(struct
+ 		free(tinfo);
+ 		return ret;
+ 	}
++	printerr(2, "start_upcall_thread(0x%lx): created thread id 0x%lx\n", 
++		tid, th);
++
+ 	tinfo->tid = th;
+ 	pthread_mutex_lock(&active_thread_list_lock);
+ 	clock_gettime(CLOCK_MONOTONIC, &tinfo->timeout);
+@@ -958,7 +968,7 @@ handle_gssd_upcall(struct clnt_info *clp
+ 	}
+ 	lbuf[lbuflen-1] = 0;
+ 
+-	printerr(2, "\n%s(0x%x): '%s' (%s)\n", __func__, tid,
++	printerr(2, "\n%s(0x%lx): '%s' (%s)\n", __func__, tid,
+ 		 lbuf, clp->relpath);
+ 
+ 	for (p = strtok(lbuf, " "); p; p = strtok(NULL, " ")) {
+diff -up nfs-utils-2.3.3/utils/gssd/krb5_util.c.orig nfs-utils-2.3.3/utils/gssd/krb5_util.c
+--- nfs-utils-2.3.3/utils/gssd/krb5_util.c.orig	2021-07-19 12:24:13.951643697 -0400
++++ nfs-utils-2.3.3/utils/gssd/krb5_util.c	2021-07-19 12:36:27.746223992 -0400
+@@ -375,6 +375,7 @@ gssd_get_single_krb5_cred(krb5_context c
+ 	char *cache_type;
+ 	char *pname = NULL;
+ 	char *k5err = NULL;
++	pthread_t tid = pthread_self();
+ 
+ 	memset(&my_creds, 0, sizeof(my_creds));
+ 
+@@ -385,8 +386,8 @@ gssd_get_single_krb5_cred(krb5_context c
+ 	now += 300;
+ 	pthread_mutex_lock(&ple_lock);
+ 	if (ple->ccname && ple->endtime > now && !nocache) {
+-		printerr(3, "INFO: Credentials in CC '%s' are good until %d\n",
+-			 ple->ccname, ple->endtime);
++		printerr(3, "%s(0x%lx): Credentials in CC '%s' are good until %s",
++			 __func__, tid, ple->ccname, ctime((time_t *)&ple->endtime));
+ 		code = 0;
+ 		pthread_mutex_unlock(&ple_lock);
+ 		goto out;
+@@ -486,7 +487,8 @@ gssd_get_single_krb5_cred(krb5_context c
+ 	}
+ 
+ 	code = 0;
+-	printerr(2, "%s: principal '%s' ccache:'%s'\n", __func__, pname, cc_name);
++	printerr(2, "%s(0x%lx): principal '%s' ccache:'%s'\n", 
++		__func__, tid, pname, cc_name);
+   out:
+ #ifdef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_ADDRESSLESS
+ 	if (init_opts)
+@@ -615,6 +617,7 @@ get_full_hostname(const char *inhost, ch
+ 	struct addrinfo hints;
+ 	int retval;
+ 	char *c;
++	pthread_t tid = pthread_self();
+ 
+ 	memset(&hints, 0, sizeof(hints));
+ 	hints.ai_socktype = SOCK_STREAM;
+@@ -624,8 +627,8 @@ get_full_hostname(const char *inhost, ch
+ 	/* Get full target hostname */
+ 	retval = getaddrinfo(inhost, NULL, &hints, &addrs);
+ 	if (retval) {
+-		printerr(1, "%s while getting full hostname for '%s'\n",
+-			 gai_strerror(retval), inhost);
++		printerr(1, "%s(0x%lx): getaddrinfo(%s) failed: %s\n",
++			 __func__, tid, inhost, gai_strerror(retval));
+ 		goto out;
+ 	}
+ 	strncpy(outhost, addrs->ai_canonname, outhostlen);
+@@ -633,7 +636,10 @@ get_full_hostname(const char *inhost, ch
+ 	for (c = outhost; *c != '\0'; c++)
+ 	    *c = tolower(*c);
+ 
+-	printerr(3, "Full hostname for '%s' is '%s'\n", inhost, outhost);
++	if (get_verbosity() && strcmp(inhost, outhost))
++		printerr(1, "%s(0x%0lx): inhost '%s' different than outhost'%s'\n", 
++			inhost, outhost);
++
+ 	retval = 0;
+ out:
+ 	return retval;
+@@ -819,6 +825,7 @@ find_keytab_entry(krb5_context context,
+ 	krb5_principal princ;
+ 	const char *notsetstr = "not set";
+ 	char *adhostoverride = NULL;
++	pthread_t tid = pthread_self();
+ 
+ 
+ 	/* Get full target hostname */
+@@ -972,7 +979,7 @@ find_keytab_entry(krb5_context context,
+ 					tried_upper = 1;
+ 				}
+ 			} else {
+-				printerr(2, "Success getting keytab entry for '%s'\n",spn);
++				printerr(2, "find_keytab_entry(0x%lx): Success getting keytab entry for '%s'\n",tid, spn);
+ 				retval = 0;
+ 				goto out;
+ 			}
+@@ -1113,9 +1120,6 @@ gssd_refresh_krb5_machine_credential_int
+ 	char *k5err = NULL;
+ 	const char *svcnames[] = { "$", "root", "nfs", "host", NULL };
+ 
+-	printerr(2, "%s: hostname=%s ple=%p service=%s srchost=%s\n",
+-		__func__, hostname, ple, service, srchost);
+-
+ 	/*
+ 	 * If a specific service name was specified, use it.
+ 	 * Otherwise, use the default list.
+@@ -1124,9 +1128,10 @@ gssd_refresh_krb5_machine_credential_int
+ 		svcnames[0] = service;
+ 		svcnames[1] = NULL;
+ 	}
+-	if (hostname == NULL && ple == NULL)
++	if (hostname == NULL && ple == NULL) {
++		printerr(0, "ERROR: %s: Invalid args\n", __func__);
+ 		return EINVAL;
+-
++	}
+ 	code = krb5_init_context(&context);
+ 	if (code) {
+ 		k5err = gssd_k5_err_msg(NULL, code);

@@ -1,0 +1,30 @@
+commit ba90d61be3abca5a699765ce08759ca6b986781d
+Author: Steve Dickson <steved@redhat.com>
+Date:   Thu Dec 10 14:05:23 2020 -0500
+
+    exports.man: Remove some outdated verbiage
+    
+    Years ago, commit 6a7d90cea765 removed the warning
+    this verbiage was talking about, but was never
+    removed from the man page.
+    
+    Signed-off-by: Steve Dickson <steved@redhat.com>
+
+diff --git a/utils/exportfs/exports.man b/utils/exportfs/exports.man
+index 1d171849..54b3f877 100644
+--- a/utils/exportfs/exports.man
++++ b/utils/exportfs/exports.man
+@@ -169,13 +169,6 @@ default.  In all releases after 1.0.0,
+ is the default, and
+ .I async
+ must be explicitly requested if needed.
+-To help make system administrators aware of this change,
+-.B exportfs
+-will issue a warning if neither
+-.I sync
+-nor
+-.I async
+-is specified.
+ .TP
+ .IR no_wdelay
+ This option has no effect if

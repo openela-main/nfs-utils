@@ -1,0 +1,24 @@
+diff -up nfs-utils-2.3.3/support/export/v4clients.c.orig nfs-utils-2.3.3/support/export/v4clients.c
+--- nfs-utils-2.3.3/support/export/v4clients.c.orig	2022-09-26 11:36:22.803929066 -0400
++++ nfs-utils-2.3.3/support/export/v4clients.c	2022-09-26 11:38:38.221187835 -0400
+@@ -8,6 +8,7 @@
+ #include <unistd.h>
+ #include <stdlib.h>
+ #include <sys/inotify.h>
++#include <sys/stat.h>
+ #include <errno.h>
+ #include "export.h"
+ 
+@@ -23,6 +24,12 @@ static int clients_fd = -1;
+ 
+ void v4clients_init(void)
+ {
++	struct stat sb;
++
++	if (!stat("/proc/fs/nfsd/clients", &sb) == 0 ||
++		!S_ISDIR(sb.st_mode))
++		return;
++
+ 	if (clients_fd >= 0)
+ 		return;
+ 	clients_fd = inotify_init1(IN_NONBLOCK);

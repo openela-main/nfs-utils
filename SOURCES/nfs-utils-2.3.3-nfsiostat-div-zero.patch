@@ -1,0 +1,12 @@
+diff -up nfs-utils-2.3.3/tools/nfs-iostat/nfs-iostat.py.orig nfs-utils-2.3.3/tools/nfs-iostat/nfs-iostat.py
+--- nfs-utils-2.3.3/tools/nfs-iostat/nfs-iostat.py.orig	2020-12-10 10:38:26.462195326 -0500
++++ nfs-utils-2.3.3/tools/nfs-iostat/nfs-iostat.py	2020-12-10 10:45:47.210671473 -0500
+@@ -380,6 +380,8 @@ class DeviceData:
+         sends = float(self.__rpc_data['rpcsends'])
+         if sample_time == 0:
+             sample_time = float(self.__nfs_data['age'])
++        if sample_time == 0:
++            sample_time = 1;
+         return (sends / sample_time)
+ 
+     def display_iostats(self, sample_time, which):

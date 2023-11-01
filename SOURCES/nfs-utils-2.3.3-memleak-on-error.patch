@@ -1,0 +1,37 @@
+From ccdd8c803182f5c172580379a56e84a23789cf0d Mon Sep 17 00:00:00 2001
+From: Alice J Mitchell <ajmitchell@redhat.com>
+Date: Mon, 29 Jul 2019 15:49:34 +0100
+Subject: [PATCH] Fix memory leak on error in nfs-server-generator
+
+Fix the trivial memory leak in the error handling of nfs-server-generator
+
+Resolves: bz1440524
+Signed-off-by: Alice J Mitchell <ajmitchell@redhat.com>
+---
+ systemd/nfs-server-generator.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/systemd/nfs-server-generator.c b/systemd/nfs-server-generator.c
+index 737f109..eec98fd 100644
+--- a/systemd/nfs-server-generator.c
++++ b/systemd/nfs-server-generator.c
+@@ -25,6 +25,7 @@
+ #include <ctype.h>
+ #include <stdio.h>
+ #include <mntent.h>
++#include <alloca.h>
+ 
+ #include "misc.h"
+ #include "nfslib.h"
+@@ -98,7 +99,7 @@ int main(int argc, char *argv[])
+ 		exit(1);
+ 	}
+ 
+-	path = malloc(strlen(argv[1]) + sizeof(dirbase) + sizeof(filebase));
++	path = alloca(strlen(argv[1]) + sizeof(dirbase) + sizeof(filebase));
+ 	if (!path)
+ 		exit(2);
+ 	if (export_read(_PATH_EXPORTS, 1) +
+-- 
+1.8.3.1
+

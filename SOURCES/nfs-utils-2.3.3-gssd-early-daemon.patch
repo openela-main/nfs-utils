@@ -1,0 +1,17 @@
+diff -up nfs-utils-2.3.3/utils/gssd/gssd.c.orig nfs-utils-2.3.3/utils/gssd/gssd.c
+--- nfs-utils-2.3.3/utils/gssd/gssd.c.orig	2019-11-11 09:23:28.920435729 -0500
++++ nfs-utils-2.3.3/utils/gssd/gssd.c	2019-11-26 13:59:52.812685585 -0500
+@@ -1020,11 +1020,11 @@ main(int argc, char *argv[])
+ 			    "support setting debug levels\n");
+ #endif
+ 
++	daemon_init(fg);
++
+ 	if (gssd_check_mechs() != 0)
+ 		errx(1, "Problem with gssapi library");
+ 
+-	daemon_init(fg);
+-
+ 	event_init();
+ 
+ 	pipefs_dir = opendir(pipefs_path);

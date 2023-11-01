@@ -1,0 +1,27 @@
+From c9305f75070abe76155d6db29889bf5dead218c2 Mon Sep 17 00:00:00 2001
+From: Steve Dickson <steved@redhat.com>
+Date: Fri, 7 Feb 2020 10:18:21 -0500
+Subject: [PATCH] query_krb5_ccache: Removed dead code that was flagged by a
+ covscan
+
+Signed-off-by: Steve Dickson <steved@redhat.com>
+---
+ utils/gssd/krb5_util.c | 2 --
+ 1 file changed, 2 deletions(-)
+
+diff --git a/utils/gssd/krb5_util.c b/utils/gssd/krb5_util.c
+index bff759f..a1c43d2 100644
+--- a/utils/gssd/krb5_util.c
++++ b/utils/gssd/krb5_util.c
+@@ -1066,8 +1066,6 @@ query_krb5_ccache(const char* cred_cache, char **ret_princname,
+ 			    *ret_realm = strdup(str+1);
+ 		    }
+ 		    k5_free_unparsed_name(context, princstring);
+-		} else {
+-			found = 0;
+ 		}
+ 	}
+ 	krb5_free_principal(context, principal);
+-- 
+2.24.1
+

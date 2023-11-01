@@ -1,0 +1,43 @@
+commit ac266e2edc4f40eef810d52c72657b645e4010db
+Author: Ondrej Mosnacek <omosnace@redhat.com>
+Date:   Tue Apr 6 15:57:37 2021 -0400
+
+    exportfs: fix unexporting of '/'
+    
+    The code that has been added to strip trailing slashes from path in
+    unexportfs_parsed() forgot to account for the case of the root
+    directory, which is simply '/'. In that case it accesses path[-1] and
+    reduces the path to an empty string, which then fails to match any
+    export.
+    
+    Fix it by stopping the stripping when the path is just a single
+    character - it doesn't matter if it's a '/' or not, we want to keep it
+    either way in that case.
+    
+    Reproducer:
+    
+        exportfs localhost:/
+        exportfs -u localhost:/
+    
+    Without this patch, the unexport step fails with "exportfs: Could not
+    find 'localhost:/' to unexport."
+    
+    Fixes: a9a7728d8743 ("exportfs: Deal with path's trailing "/" in unexportfs_parsed()")
+    Link: https://bugzilla.redhat.com/show_bug.cgi?id=1941171
+    
+    Signed-off-by: Ondrej Mosnacek <omosnace@redhat.com>
+    Signed-off-by: Steve Dickson <steved@redhat.com>
+
+diff --git a/utils/exportfs/exportfs.c b/utils/exportfs/exportfs.c
+index 262dd19a..25d757d8 100644
+--- a/utils/exportfs/exportfs.c
++++ b/utils/exportfs/exportfs.c
+@@ -383,7 +383,7 @@ unexportfs_parsed(char *hname, char *path, int verbose)
+ 	 * so need to deal with it.
+ 	*/
+ 	size_t nlen = strlen(path);
+-	while (path[nlen - 1] == '/')
++	while ((nlen > 1) && (path[nlen - 1] == '/'))
+ 		nlen--;
+ 
+ 	for (exp = exportlist[htype].p_head; exp; exp = exp->m_next) {

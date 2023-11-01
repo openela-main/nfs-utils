@@ -1,0 +1,52 @@
+commit 64d83364b08ab32c6b8fee903529314349175772
+Author: Pierguido Lambri <plambri@redhat.com>
+Date:   Mon Mar 11 13:50:57 2019 -0400
+
+    gssd: add verbosity options to the rpc.gssd man page
+    
+    It also adds the commented out entries in the nfs.conf
+    default file.
+    
+    Fixes: https://bugzilla.redhat.com/show_bug.cgi?id=1668026
+    
+    Signed-off-by: Pierguido Lambri <plambri@redhat.com>
+    Signed-off-by: Steve Dickson <steved@redhat.com>
+
+diff -up nfs-utils-2.3.3/nfs.conf.orig nfs-utils-2.3.3/nfs.conf
+--- nfs-utils-2.3.3/nfs.conf.orig	2019-03-19 11:04:16.903567972 -0400
++++ nfs-utils-2.3.3/nfs.conf	2019-03-19 11:10:54.452251970 -0400
+@@ -9,6 +9,8 @@
+ # debug=0
+ #
+ [gssd]
++# verbosity=0
++# rpc-verbosity=0
+ # use-memcache=0
+ # use-machine-creds=1
+ use-gss-proxy=1
+diff -up nfs-utils-2.3.3/systemd/nfs.conf.man.orig nfs-utils-2.3.3/systemd/nfs.conf.man
+--- nfs-utils-2.3.3/systemd/nfs.conf.man.orig	2019-03-19 11:04:16.911567926 -0400
++++ nfs-utils-2.3.3/systemd/nfs.conf.man	2019-03-19 11:10:54.452251970 -0400
+@@ -211,6 +211,8 @@ for details.
+ .TP
+ .B gssd
+ Recognized values:
++.BR verbosity ,
++.BR rpc-verbosity ,
+ .BR use-memcache ,
+ .BR use-machine-creds ,
+ .BR use-gss-proxy ,
+diff -up nfs-utils-2.3.3/utils/gssd/gssd.c.orig nfs-utils-2.3.3/utils/gssd/gssd.c
+--- nfs-utils-2.3.3/utils/gssd/gssd.c.orig	2019-03-19 11:04:16.893568031 -0400
++++ nfs-utils-2.3.3/utils/gssd/gssd.c	2019-03-19 11:10:54.453251964 -0400
+@@ -890,8 +890,8 @@ main(int argc, char *argv[])
+ 
+ 	read_gss_conf();
+ 
+-	verbosity = conf_get_num("gssd", "Verbosity", verbosity);
+-	rpc_verbosity = conf_get_num("gssd", "RPC-Verbosity", rpc_verbosity);
++	verbosity = conf_get_num("gssd", "verbosity", verbosity);
++	rpc_verbosity = conf_get_num("gssd", "rpc-verbosity", rpc_verbosity);
+ 
+ 	while ((opt = getopt(argc, argv, "DfvrlmnMp:k:d:t:T:R:")) != -1) {
+ 		switch (opt) {

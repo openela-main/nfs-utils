@@ -1,0 +1,73 @@
+commit 0240df0e8ccf7be2706a6a10a2a620f8eda55275
+Author: Yongcheng Yang <yongcheng.yang@gmail.com>
+Date:   Thu Sep 5 07:36:26 2019 -0400
+
+    nfsd: Adjust nfs.conf setting/parsing of rdma port
+    
+    The rpc.nfsd program can use option "--rdma" to enable
+    RDMA on the standard port (nfsrdma/20049) or "--rdma=port"
+    for an alternate port.
+    
+    But now in /etc/nfs.conf, we need to specify the port
+    number (e.g. rdma=nfsrdma) to enable it, which is not
+    convenient.
+    The default setting "rdma=n" may cause more confusion.
+    
+    Update to enable RDMA on standard port when setting
+    boolean YES to "rdma=". And using "rdma-port=" for an
+    alternate port if necessary.
+    
+    Also let previous config (e.g. rdma=nfsrdma) work as well.
+    
+    Signed-off-by: Yongcheng Yang <yongcheng.yang@gmail.com>
+    Signed-off-by: Steve Dickson <steved@redhat.com>
+
+diff --git a/nfs.conf b/nfs.conf
+index 85097fd..186a5b1 100644
+--- a/nfs.conf
++++ b/nfs.conf
+@@ -63,6 +63,7 @@
+ # vers4.1=y
+ # vers4.2=y
+ # rdma=n
++# rdma-port=20049
+ #
+ [statd]
+ # debug=0
+diff --git a/utils/nfsd/nfsd.c b/utils/nfsd/nfsd.c
+index b256bd9..a412a02 100644
+--- a/utils/nfsd/nfsd.c
++++ b/utils/nfsd/nfsd.c
+@@ -92,7 +92,14 @@ main(int argc, char **argv)
+ 	port = conf_get_str("nfsd", "port");
+ 	if (!port)
+ 		port = "nfs";
+-	rdma_port = conf_get_str("nfsd", "rdma");
++	if (conf_get_bool("nfsd", "rdma", false)) {
++		rdma_port = conf_get_str("nfsd", "rdma-port");
++		if (!rdma_port)
++			rdma_port = "nfsrdma";
++	}
++	/* backward compatibility - nfs.conf used to set rdma port directly */
++	if (!rdma_port)
++		rdma_port = conf_get_str("nfsd", "rdma");
+ 	if (conf_get_bool("nfsd", "udp", NFSCTL_UDPISSET(protobits)))
+ 		NFSCTL_UDPSET(protobits);
+ 	else
+diff --git a/utils/nfsd/nfsd.man b/utils/nfsd/nfsd.man
+index d83ef86..2701ba7 100644
+--- a/utils/nfsd/nfsd.man
++++ b/utils/nfsd/nfsd.man
+@@ -144,7 +144,11 @@ The lease time for NFSv4, in seconds.
+ Set the port for TCP/UDP to bind to.
+ .TP
+ .B rdma
+-Set RDMA port.  Use "rdma=nfsrdma" to enable standard port.
++Enable RDMA port (with "on" or "yes" etc) on the standard port
++("nfsrdma", port 20049).
++.TP
++.B rdma-port
++Set an alternate RDMA port.
+ .TP
+ .B UDP
+ Enable (with "on" or "yes" etc) or disable ("off", "no") UDP support.
