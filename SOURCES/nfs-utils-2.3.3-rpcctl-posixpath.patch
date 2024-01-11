@@ -1,0 +1,12 @@
+diff -up nfs-utils-2.3.3/tools/rpcctl/rpcctl.py.orig nfs-utils-2.3.3/tools/rpcctl/rpcctl.py
+--- nfs-utils-2.3.3/tools/rpcctl/rpcctl.py.orig	2022-06-27 13:22:19.844747880 -0400
++++ nfs-utils-2.3.3/tools/rpcctl/rpcctl.py	2022-06-27 13:23:02.168004219 -0400
+@@ -213,7 +213,7 @@ class RpcClient:
+     def __init__(self, path):
+         self.path = path
+         self.name = path.stem
+-        self.switch = XprtSwitch(path / (path / "switch").readlink(), sep=",")
++        self.switch = XprtSwitch(path / os.readlink(path / "switch"), sep=",")
+ 
+     def __lt__(self, rhs):
+         return self.name < rhs.name

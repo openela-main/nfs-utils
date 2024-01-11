@@ -1,0 +1,14 @@
+diff -up nfs-utils-2.3.3/utils/gssd/krb5_util.c.orig nfs-utils-2.3.3/utils/gssd/krb5_util.c
+--- nfs-utils-2.3.3/utils/gssd/krb5_util.c.orig	2021-11-04 10:13:07.788142847 -0400
++++ nfs-utils-2.3.3/utils/gssd/krb5_util.c	2021-11-04 10:14:10.829841090 -0400
+@@ -647,8 +647,8 @@ get_full_hostname(const char *inhost, ch
+ 	    *c = tolower(*c);
+ 
+ 	if (get_verbosity() && strcmp(inhost, outhost))
+-		printerr(1, "%s(0x%0lx): inhost '%s' different than outhost'%s'\n", 
+-			inhost, outhost);
++		printerr(1, "%s(0x%0lx): inhost '%s' different than outhost '%s'\n", 
++			 __func__, tid, inhost, outhost);
+ 
+ 	retval = 0;
+ out:

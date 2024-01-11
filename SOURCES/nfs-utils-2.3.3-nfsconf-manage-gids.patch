@@ -1,0 +1,23 @@
+commit 268e3c0cff6d6aee3b8f5458545f8dab76d7d444
+Author: Steve Dickson <steved@redhat.com>
+Date:   Mon Feb 4 15:17:42 2019 -0500
+
+    nfs.conf: Fixed manage-gids option typo
+    
+    Reported-by: Adam DiFrischia <adifrischia@curtisswright.com>
+    BugLink: https://bugzilla.linux-nfs.org/show_bug.cgi?id=333
+    Signed-off-by: Steve Dickson <steved@redhat.com>
+
+diff --git a/nfs.conf b/nfs.conf
+index 796bee4..722b024 100644
+--- a/nfs.conf
++++ b/nfs.conf
+@@ -26,7 +26,7 @@
+ #
+ [mountd]
+ # debug=0
+-# manage_gids=n
++# manage-gids=n
+ # descriptors=0
+ # port=0
+ # threads=1

@@ -1,0 +1,29 @@
+commit 52db5259fe78c2b948df279b697412f99e12f229
+Author: Yongcheng Yang <yongcheng.yang@gmail.com>
+Date:   Fri Aug 23 14:06:42 2019 -0400
+
+    gssd: add configure options verbosity to man page rpc.gssd(8)
+    
+    Signed-off-by: Pierguido Lambri <plambri@redhat.com>
+    Signed-off-by: Yongcheng Yang <yongcheng.yang@gmail.com>
+    Signed-off-by: Steve Dickson <steved@redhat.com>
+
+diff --git a/utils/gssd/gssd.man b/utils/gssd/gssd.man
+index e620f0d1..cc3a210a 100644
+--- a/utils/gssd/gssd.man
++++ b/utils/gssd/gssd.man
+@@ -305,6 +305,14 @@ section of the
+ .I /etc/nfs.conf
+ configuration file.  Values recognized include:
+ .TP
++.B verbosity
++Value which is equivalent to the number of
++.BR -v .
++.TP
++.B rpc-verbosity
++Value which is equivalent to the number of
++.BR -r .
++.TP
+ .B use-memcache
+ A Boolean flag equivalent to
+ .BR -M .

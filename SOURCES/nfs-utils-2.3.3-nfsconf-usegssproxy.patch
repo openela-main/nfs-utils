@@ -1,0 +1,82 @@
+diff -up nfs-utils-2.3.3/nfs.conf.orig nfs-utils-2.3.3/nfs.conf
+--- nfs-utils-2.3.3/nfs.conf.orig	2018-10-22 13:34:58.927700353 -0400
++++ nfs-utils-2.3.3/nfs.conf	2018-10-22 14:14:36.864110090 -0400
+@@ -2,16 +2,16 @@
+ # This is a general configuration for the
+ # NFS daemons and tools
+ #
+-#[general]
++[general]
+ # pipefs-directory=/var/lib/nfs/rpc_pipefs
+ #
+-#[exportfs]
++[exportfs]
+ # debug=0
+ #
+-#[gssd]
++[gssd]
+ # use-memcache=0
+ # use-machine-creds=1
+-# use-gss-proxy=0
++use-gss-proxy=1
+ # avoid-dns=1
+ # limit-to-legacy-enctypes=0
+ # context-timeout=0
+@@ -20,11 +20,11 @@
+ # cred-cache-directory=
+ # preferred-realm=
+ #
+-#[lockd]
++[lockd]
+ # port=0
+ # udp-port=0
+ #
+-#[mountd]
++[mountd]
+ # debug=0
+ # manage_gids=n
+ # descriptors=0
+@@ -34,18 +34,17 @@
+ # state-directory-path=/var/lib/nfs
+ # ha-callout=
+ #
+-#[nfsdcltrack]
++[nfsdcltrack]
+ # debug=0
+ # storagedir=/var/lib/nfs/nfsdcltrack
+ #
+-#[nfsd]
++[nfsd]
+ # debug=0
+ # threads=8
+ # host=
+ # port=0
+ # grace-time=90
+ # lease-time=90
+-# udp=n
+ # tcp=y
+ # vers2=n
+ # vers3=y
+@@ -55,7 +54,7 @@
+ # vers4.2=y
+ # rdma=n
+ #
+-#[statd]
++[statd]
+ # debug=0
+ # port=0
+ # outgoing-port=0
+@@ -63,12 +62,10 @@
+ # state-directory-path=/var/lib/nfs/statd
+ # ha-callout=
+ #
+-#[sm-notify]
++[sm-notify]
+ # debug=0
+ # retry-time=900
+ # outgoing-port=
+ # outgoing-addr=
+ # lift-grace=y
+ #
+-#[svcgssd]
+-# principal=

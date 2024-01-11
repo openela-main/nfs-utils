@@ -1,0 +1,17 @@
+diff -up nfs-utils-2.3.3/utils/gssd/gssd.man.orig nfs-utils-2.3.3/utils/gssd/gssd.man
+--- nfs-utils-2.3.3/utils/gssd/gssd.man.orig	2021-04-17 11:21:18.326543446 -0400
++++ nfs-utils-2.3.3/utils/gssd/gssd.man	2021-04-17 12:35:59.867574517 -0400
+@@ -347,11 +347,11 @@ Equivalent to
+ .TP
+ .B context-timeout
+ Equivalent to
+-.BR -T .
++.BR -t .
+ .TP
+ .B rpc-timeout
+ Equivalent to
+-.BR -t .
++.BR -T .
+ .TP
+ .B keytab-file
+ Equivalent to

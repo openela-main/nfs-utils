@@ -1,0 +1,130 @@
+commit 77d053e4881664e7dbbc3bbb9a242af005598e95
+Author: Steve Dickson <steved@redhat.com>
+Date:   Wed May 13 12:22:41 2020 -0400
+
+    nfsdclddb: Redname clddb-tool to nfsdclddb
+    
+    To try to maintain some type of name convention
+    rename clddb-tool to nfsdclddb
+    
+    Signed-off-by: Steve Dickson <steved@redhat.com>
+
+diff --git a/configure.ac b/configure.ac
+index df88e58..0b1c8cc 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -695,7 +695,7 @@ AC_CONFIG_FILES([
+ 	tools/mountstats/Makefile
+ 	tools/nfs-iostat/Makefile
+ 	tools/nfsconf/Makefile
+-	tools/clddb-tool/Makefile
++	tools/nfsdclddb/Makefile
+ 	utils/Makefile
+ 	utils/blkmapd/Makefile
+ 	utils/nfsdcld/Makefile
+diff --git a/tools/Makefile.am b/tools/Makefile.am
+index 53e6117..432d35d 100644
+--- a/tools/Makefile.am
++++ b/tools/Makefile.am
+@@ -9,7 +9,7 @@ endif
+ OPTDIRS += nfsconf
+ 
+ if CONFIG_NFSDCLD
+-OPTDIRS += clddb-tool
++OPTDIRS += nfsdclddb
+ endif
+ 
+ SUBDIRS = locktest rpcdebug nlmtest mountstats nfs-iostat $(OPTDIRS)
+diff --git a/tools/clddb-tool/Makefile.am b/tools/nfsdclddb/Makefile.am
+similarity index 60%
+rename from tools/clddb-tool/Makefile.am
+rename to tools/nfsdclddb/Makefile.am
+index 15a8fd4..18263fb 100644
+--- a/tools/clddb-tool/Makefile.am
++++ b/tools/nfsdclddb/Makefile.am
+@@ -1,13 +1,13 @@
+ ## Process this file with automake to produce Makefile.in
+-PYTHON_FILES =  clddb-tool.py
++PYTHON_FILES =  nfsdclddb.py
+ 
+-man8_MANS	= clddb-tool.man
++man8_MANS	= nfsdclddb.man
+ 
+ EXTRA_DIST	= $(man8_MANS) $(PYTHON_FILES)
+ 
+ all-local: $(PYTHON_FILES)
+ 
+ install-data-hook:
+-	$(INSTALL) -m 755 clddb-tool.py $(DESTDIR)$(sbindir)/clddb-tool
++	$(INSTALL) -m 755 nfsdclddb.py $(DESTDIR)$(sbindir)/nfsdclddb
+ 
+ MAINTAINERCLEANFILES=Makefile.in
+diff --git a/tools/clddb-tool/clddb-tool.man b/tools/nfsdclddb/nfsdclddb.man
+similarity index 84%
+rename from tools/clddb-tool/clddb-tool.man
+rename to tools/nfsdclddb/nfsdclddb.man
+index e80b2c0..8ec7b18 100644
+--- a/tools/clddb-tool/clddb-tool.man
++++ b/tools/nfsdclddb/nfsdclddb.man
+@@ -1,20 +1,20 @@
+ .\"
+-.\" clddb-tool(8)
++.\" nfsdclddb(8)
+ .\"
+-.TH clddb-tool 8 "07 Aug 2019"
++.TH nfsdclddb 8 "07 Aug 2019"
+ .SH NAME
+-clddb-tool \- Tool for manipulating the nfsdcld sqlite database
++nfsdclddb \- Tool for manipulating the nfsdcld sqlite database
+ .SH SYNOPSIS
+-.B clddb-tool
++.B nfsdclddb
+ .RB [ \-h | \-\-help ]
+ .P
+-.B clddb-tool
++.B nfsdclddb
+ .RB [ \-p | \-\-path
+ .IR dbpath ]
+ .B fix-table-names
+ .RB [ \-h | \-\-help ]
+ .P
+-.B clddb-tool
++.B nfsdclddb
+ .RB [ \-p | \-\-path
+ .IR dbpath ]
+ .B downgrade-schema
+@@ -22,7 +22,7 @@ clddb-tool \- Tool for manipulating the nfsdcld sqlite database
+ .RB [ \-v | \-\-version
+ .IR to-version ]
+ .P
+-.B clddb-tool
++.B nfsdclddb
+ .RB [ \-p | \-\-path
+ .IR dbpath ]
+ .B print
+@@ -31,10 +31,10 @@ clddb-tool \- Tool for manipulating the nfsdcld sqlite database
+ .P
+ 
+ .SH DESCRIPTION
+-.RB "The " clddb-tool " command is provided to perform some manipulation of the nfsdcld sqlite database schema and to print the contents of the database."
++.RB "The " nfsdclddb " command is provided to perform some manipulation of the nfsdcld sqlite database schema and to print the contents of the database."
+ .SS Sub-commands
+ Valid
+-.B clddb-tool
++.B nfsdclddb
+ subcommands are:
+ .IP "\fBfix-table-names\fP"
+ .RB "A previous version of " nfsdcld "(8) contained a bug that corrupted the reboot epoch table names.  This sub-command will fix those table names."
+@@ -66,7 +66,7 @@ The schema version to downgrade to.  Currently the schema can only be downgraded
+ Do not list the clients in the reboot epoch tables in the output.
+ .SH NOTES
+ The
+-.B clddb-tool
++.B nfsdclddb
+ command will not allow the
+ .B fix-table-names
+ or
+diff --git a/tools/clddb-tool/clddb-tool.py b/tools/nfsdclddb/nfsdclddb.py
+similarity index 100%
+rename from tools/clddb-tool/clddb-tool.py
+rename to tools/nfsdclddb/nfsdclddb.py

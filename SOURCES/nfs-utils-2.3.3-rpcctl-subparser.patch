@@ -1,0 +1,34 @@
+From 2fdd10bebf395b51e931a10adbdc85f3a3f8a285 Mon Sep 17 00:00:00 2001
+From: Alice Mitchell <ajmitchell@redhat.com>
+Date: Thu, 23 Jun 2022 16:04:45 +0100
+Subject: [PATCH] Remove subparser required option as that was added in py3.7
+
+---
+ tools/rpcctl/rpcctl.py | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/tools/rpcctl/rpcctl.py b/tools/rpcctl/rpcctl.py
+index d2110ad6..2ac6ede9 100755
+--- a/tools/rpcctl/rpcctl.py
++++ b/tools/rpcctl/rpcctl.py
+@@ -120,7 +120,7 @@ class Xprt:
+         set = subparser.add_parser("set", help="Change an xprt property")
+         set.add_argument("xprt", metavar="XPRT", nargs=1,
+                          help="Name of a specific xprt to modify")
+-        subparser = set.add_subparsers(required=True)
++        subparser = set.add_subparsers()
+         online = subparser.add_parser("online", help="Set an xprt online")
+         online.set_defaults(func=Xprt.set_property, property="online")
+         offline = subparser.add_parser("offline", help="Set an xprt offline")
+@@ -185,7 +185,7 @@ class XprtSwitch:
+         set = subparser.add_parser("set", help="Change an xprt switch property")
+         set.add_argument("switch", metavar="SWITCH", nargs=1,
+                          help="Name of a specific xprt switch to modify")
+-        subparser = set.add_subparsers(required=True)
++        subparser = set.add_subparsers()
+         dstaddr = subparser.add_parser("dstaddr", help="Change an xprt switch's dstaddr")
+         dstaddr.add_argument("newaddr", metavar="NEWADDR", nargs=1,
+                              help="The new address for the xprt switch")
+-- 
+2.36.1
+

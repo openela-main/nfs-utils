@@ -1,0 +1,141 @@
+diff -up nfs-utils-2.3.3/nfs.conf.orig nfs-utils-2.3.3/nfs.conf
+--- nfs-utils-2.3.3/nfs.conf.orig	2021-04-17 10:49:23.660184527 -0400
++++ nfs-utils-2.3.3/nfs.conf	2021-04-17 11:14:41.482108562 -0400
+@@ -21,6 +21,7 @@ use-gss-proxy=1
+ # keytab-file=/etc/krb5.keytab
+ # cred-cache-directory=
+ # preferred-realm=
++# set-home=1
+ #
+ [lockd]
+ # port=0
+diff -up nfs-utils-2.3.3/systemd/nfs.conf.man.orig nfs-utils-2.3.3/systemd/nfs.conf.man
+--- nfs-utils-2.3.3/systemd/nfs.conf.man.orig	2021-04-17 10:49:23.696185472 -0400
++++ nfs-utils-2.3.3/systemd/nfs.conf.man	2021-04-17 11:14:41.483108588 -0400
+@@ -222,7 +222,8 @@ Recognized values:
+ .BR rpc-timeout ,
+ .BR keytab-file ,
+ .BR cred-cache-directory ,
+-.BR preferred-realm .
++.BR preferred-realm ,
++.BR set-home .
+ 
+ See
+ .BR rpc.gssd (8)
+diff -up nfs-utils-2.3.3/utils/gssd/gssd.c.orig nfs-utils-2.3.3/utils/gssd/gssd.c
+--- nfs-utils-2.3.3/utils/gssd/gssd.c.orig	2021-04-17 10:49:23.684185157 -0400
++++ nfs-utils-2.3.3/utils/gssd/gssd.c	2021-04-17 11:14:41.483108588 -0400
+@@ -87,6 +87,8 @@ unsigned int  context_timeout = 0;
+ unsigned int  rpc_timeout = 5;
+ char *preferred_realm = NULL;
+ char *ccachedir = NULL;
++/* set $HOME to "/" by default */
++static bool set_home = true;
+ /* Avoid DNS reverse lookups on server names */
+ static bool avoid_dns = true;
+ static bool use_gssproxy = false;
+@@ -885,7 +887,7 @@ sig_die(int signal)
+ static void
+ usage(char *progname)
+ {
+-	fprintf(stderr, "usage: %s [-f] [-l] [-M] [-n] [-v] [-r] [-p pipefsdir] [-k keytab] [-d ccachedir] [-t timeout] [-R preferred realm] [-D]\n",
++	fprintf(stderr, "usage: %s [-f] [-l] [-M] [-n] [-v] [-r] [-p pipefsdir] [-k keytab] [-d ccachedir] [-t timeout] [-R preferred realm] [-D] [-H]\n",
+ 		progname);
+ 	exit(1);
+ }
+@@ -926,6 +928,7 @@ read_gss_conf(void)
+ 		preferred_realm = s;
+ 
+ 	use_gssproxy = conf_get_bool("gssd", "use-gss-proxy", use_gssproxy);
++	set_home = conf_get_bool("gssd", "set-home", set_home);
+ }
+ 
+ int
+@@ -946,7 +949,7 @@ main(int argc, char *argv[])
+ 	verbosity = conf_get_num("gssd", "verbosity", verbosity);
+ 	rpc_verbosity = conf_get_num("gssd", "rpc-verbosity", rpc_verbosity);
+ 
+-	while ((opt = getopt(argc, argv, "DfvrlmnMp:k:d:t:T:R:")) != -1) {
++	while ((opt = getopt(argc, argv, "HDfvrlmnMp:k:d:t:T:R:")) != -1) {
+ 		switch (opt) {
+ 			case 'f':
+ 				fg = 1;
+@@ -994,6 +997,9 @@ main(int argc, char *argv[])
+ 			case 'D':
+ 				avoid_dns = false;
+ 				break;
++			case 'H':
++				set_home = false;
++				break;
+ 			default:
+ 				usage(argv[0]);
+ 				break;
+@@ -1003,13 +1009,19 @@ main(int argc, char *argv[])
+ 	/*
+ 	 * Some krb5 routines try to scrape info out of files in the user's
+ 	 * home directory. This can easily deadlock when that homedir is on a
+-	 * kerberized NFS mount. By setting $HOME unconditionally to "/", we
+-	 * prevent this behavior in routines that use $HOME in preference to
+-	 * the results of getpw*.
++	 * kerberized NFS mount. By setting $HOME to "/" by default, we prevent
++	 * this behavior in routines that use $HOME in preference to the results
++	 * of getpw*.
++	 *
++	 * Some users do not use Kerberized home dirs and need $HOME to remain
++	 * unchanged. Those users can leave $HOME unchanged by setting set_home
++	 * to false.
+ 	 */
+-	if (setenv("HOME", "/", 1)) {
+-		printerr(0, "gssd: Unable to set $HOME: %s\n", strerror(errno));
+-		exit(1);
++	if (set_home) {
++		if (setenv("HOME", "/", 1)) {
++			printerr(0, "gssd: Unable to set $HOME: %s\n", strerror(errno));
++			exit(1);
++		}
+ 	}
+ 
+ 	if (use_gssproxy) {
+diff -up nfs-utils-2.3.3/utils/gssd/gssd.man.orig nfs-utils-2.3.3/utils/gssd/gssd.man
+--- nfs-utils-2.3.3/utils/gssd/gssd.man.orig	2021-04-17 10:49:23.650184264 -0400
++++ nfs-utils-2.3.3/utils/gssd/gssd.man	2021-04-17 11:14:41.484108615 -0400
+@@ -8,7 +8,7 @@
+ rpc.gssd \- RPCSEC_GSS daemon
+ .SH SYNOPSIS
+ .B rpc.gssd
+-.RB [ \-DfMnlvr ]
++.RB [ \-DfMnlvrH ]
+ .RB [ \-k
+ .IR keytab ]
+ .RB [ \-p
+@@ -297,6 +297,16 @@ The default timeout is set to 5 seconds.
+ If you get messages like "WARNING: can't create tcp rpc_clnt to server
+ %servername% for user with uid %uid%: RPC: Remote system error -
+ Connection timed out", you should consider an increase of this timeout.
++.TP
++.B -H
++Avoids setting $HOME to "/". This allows rpc.gssd to read per user k5identity
++files versus trying to read /.k5identity for each user.
++
++If
++.B \-H
++is not set, rpc.gssd will use the first match found in
++/var/kerberos/krb5/user/$EUID/client.keytab and will not use a principal based on
++host and/or service parameters listed in $HOME/.k5identity.
+ .SH CONFIGURATION FILE
+ Many of the options that can be set on the command line can also be
+ controlled through values set in the
+@@ -354,6 +364,13 @@ Equivalent to
+ .B preferred-realm
+ Equivalent to
+ .BR -R .
++.TP
++.B set-home
++Setting to
++.B false
++is equivalent to providing the
++.B -H
++flag.
+ .P
+ In addtion, the following value is recognized from the
+ .B [general]

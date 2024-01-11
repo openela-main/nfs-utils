@@ -1,0 +1,22 @@
+commit 2b78802c4eda6f74b77330832c54fd6b59991adf
+Author: Josef Radinger <cheese@nosuchhost.net>
+Date:   Wed Jul 24 10:59:51 2019 -0400
+
+    nfs.man: Fixed small typo in man page
+    
+    Fixes: https://bugzilla.linux-nfs.org/show_bug.cgi?id=337
+    Signed-off-by: Steve Dickson <steved@redhat.com>
+
+diff --git a/utils/mount/nfs.man b/utils/mount/nfs.man
+index 9ee9bd9..6ba9cef 100644
+--- a/utils/mount/nfs.man
++++ b/utils/mount/nfs.man
+@@ -1252,7 +1252,7 @@ If absolute cache coherence among clients is required,
+ applications should use file locking. Alternatively, applications
+ can also open their files with the O_DIRECT flag
+ to disable data caching entirely.
+-.SS "File timestamp maintainence"
++.SS "File timestamp maintenance"
+ NFS servers are responsible for managing file and directory timestamps
+ .RB ( atime ,
+ .BR ctime ", and"

@@ -1,0 +1,597 @@
+diff -up nfs-utils-2.3.3/configure.ac.orig nfs-utils-2.3.3/configure.ac
+--- nfs-utils-2.3.3/configure.ac.orig	2019-09-18 10:57:14.190810677 -0400
++++ nfs-utils-2.3.3/configure.ac	2019-09-18 10:57:56.715567641 -0400
+@@ -561,6 +561,7 @@ my_am_cflags="\
+  -Werror=parentheses \
+  -Werror=aggregate-return \
+  -Werror=unused-result \
++ -Wno-cast-function-type \
+  -fno-strict-aliasing \
+ "
+ 
+diff -up nfs-utils-2.3.3/support/junction/path.c.orig nfs-utils-2.3.3/support/junction/path.c
+--- nfs-utils-2.3.3/support/junction/path.c.orig	2018-09-06 14:09:08.000000000 -0400
++++ nfs-utils-2.3.3/support/junction/path.c	2019-09-18 10:57:56.715567641 -0400
+@@ -163,8 +163,10 @@ nsdb_count_components(const char *pathna
+ 			break;
+ 		next = strchrnul(component, '/');
+ 		tmp = (size_t)(next - component);
+-		if (tmp > 255)
++		if (tmp > 255) {
++			free(start);
+ 			return false;
++		}
+ 		length += XDR_UINT_BYTES + (nsdb_quadlen(tmp) << 2);
+ 		count++;
+ 
+@@ -328,11 +330,13 @@ nsdb_posix_to_path_array(const char *pat
+ 		length = (size_t)(next - component);
+ 		if (length > 255) {
+ 			nsdb_free_string_array(result);
++			free(normalized);
+ 			return FEDFS_ERR_SVRFAULT;
+ 		}
+ 
+ 		result[i] = strndup(component, length);
+ 		if (result[i] == NULL) {
++			free(normalized);
+ 			nsdb_free_string_array(result);
+ 			return FEDFS_ERR_SVRFAULT;
+ 		}
+diff -up nfs-utils-2.3.3/support/nfs/exports.c.orig nfs-utils-2.3.3/support/nfs/exports.c
+--- nfs-utils-2.3.3/support/nfs/exports.c.orig	2018-09-06 14:09:08.000000000 -0400
++++ nfs-utils-2.3.3/support/nfs/exports.c	2019-09-18 10:57:56.715567641 -0400
+@@ -714,6 +714,7 @@ parsesquash(char *list, int **idp, int *
+ 		}
+ 		if (id0 == -1 || id1 == -1) {
+ 			syntaxerr("uid/gid -1 not permitted");
++			xfree(id);
+ 			return -1;
+ 		}
+ 		if ((len % 8) == 0)
+@@ -724,6 +725,7 @@ parsesquash(char *list, int **idp, int *
+ 			break;
+ 		if (*cp != ',') {
+ 			syntaxerr("bad uid/gid list");
++			xfree(id);
+ 			return -1;
+ 		}
+ 		cp++;
+diff -up nfs-utils-2.3.3/support/nfsidmap/libnfsidmap.c.orig nfs-utils-2.3.3/support/nfsidmap/libnfsidmap.c
+--- nfs-utils-2.3.3/support/nfsidmap/libnfsidmap.c.orig	2018-09-06 14:09:08.000000000 -0400
++++ nfs-utils-2.3.3/support/nfsidmap/libnfsidmap.c	2019-09-18 10:57:56.716567635 -0400
+@@ -406,8 +406,10 @@ int nfs4_init_name_mapping(char *conffil
+ 	nfs4_methods = conf_get_list("Translation", "Method");
+ 	if (nfs4_methods) {
+ 		IDMAP_LOG(1, ("libnfsidmap: processing 'Method' list"));
+-		if (load_plugins(nfs4_methods, &nfs4_plugins) == -1)
++		if (load_plugins(nfs4_methods, &nfs4_plugins) == -1) {
++			conf_free_list(nfs4_methods);
+ 			return -ENOENT;
++		}
+ 	} else {
+ 		struct conf_list list;
+ 		struct conf_list_node node;
+@@ -475,11 +477,15 @@ out:
+ 	if (ret) {
+ 		if (nfs4_plugins)
+ 			unload_plugins(nfs4_plugins);
+-		if (gss_plugins)
++		if (gss_plugins) {
+ 			unload_plugins(gss_plugins);
++		}
+ 		nfs4_plugins = gss_plugins = NULL;
+ 	}
+ 
++	if (gss_methods)
++		conf_free_list(gss_methods);
++
+ 	return ret ? -ENOENT: 0;
+ }
+ 
+diff -up nfs-utils-2.3.3/support/nfsidmap/static.c.orig nfs-utils-2.3.3/support/nfsidmap/static.c
+--- nfs-utils-2.3.3/support/nfsidmap/static.c.orig	2018-09-06 14:09:08.000000000 -0400
++++ nfs-utils-2.3.3/support/nfsidmap/static.c	2019-09-18 10:57:56.716567635 -0400
+@@ -347,6 +347,7 @@ static int static_init(void) {
+ 			warnx("static_init: calloc (1, %lu) failed",
+ 				(unsigned long)sizeof *unode);
+ 			free(pw);
++			conf_free_list(princ_list);
+ 			return -ENOMEM;
+ 		}
+ 		unode->uid = pw->pw_uid;
+@@ -355,6 +356,9 @@ static int static_init(void) {
+ 		unode->localname = conf_get_str("Static", cln->field);
+ 		if (!unode->localname) {
+ 			free(pw);
++			free(unode->principal);
++			free(unode);
++			conf_free_list(princ_list);
+ 			return -ENOENT;
+ 		}
+ 
+@@ -379,6 +383,7 @@ static int static_init(void) {
+ 			warnx("static_init: calloc (1, %lu) failed",
+ 				(unsigned long)sizeof *gnode);
+ 			free(gr);
++			conf_free_list(princ_list);
+ 			return -ENOMEM;
+ 		}
+ 		gnode->gid = gr->gr_gid;
+@@ -387,6 +392,9 @@ static int static_init(void) {
+ 		gnode->localgroup = conf_get_str("Static", cln->field);
+ 		if (!gnode->localgroup) {
+ 			free(gr);
++			free(gnode->principal);
++			free(gnode);
++			conf_free_list(princ_list);
+ 			return -ENOENT;
+ 		}
+ 
+@@ -394,6 +402,8 @@ static int static_init(void) {
+ 
+ 		LIST_INSERT_HEAD (&gid_mappings[gid_hash(gnode->gid)], gnode, link);
+ 	}
++	
++	conf_free_list(princ_list);
+ 	return 0;
+ }
+ 
+diff -up nfs-utils-2.3.3/support/nfs/mydaemon.c.orig nfs-utils-2.3.3/support/nfs/mydaemon.c
+--- nfs-utils-2.3.3/support/nfs/mydaemon.c.orig	2018-09-06 14:09:08.000000000 -0400
++++ nfs-utils-2.3.3/support/nfs/mydaemon.c	2019-09-18 10:57:56.716567635 -0400
+@@ -123,6 +123,7 @@ daemon_init(bool fg)
+ 	dup2(tempfd, 0);
+ 	dup2(tempfd, 1);
+ 	dup2(tempfd, 2);
++	close(tempfd);
+ 	closelog();
+ 	dup2(pipefds[1], 3);
+ 	pipefds[1] = 3;
+diff -up nfs-utils-2.3.3/support/nfs/rpcmisc.c.orig nfs-utils-2.3.3/support/nfs/rpcmisc.c
+--- nfs-utils-2.3.3/support/nfs/rpcmisc.c.orig	2018-09-06 14:09:08.000000000 -0400
++++ nfs-utils-2.3.3/support/nfs/rpcmisc.c	2019-09-18 10:57:56.716567635 -0400
+@@ -102,6 +102,7 @@ makesock(int port, int proto)
+ 	if (bind(sock, (struct sockaddr *) &sin, sizeof(sin)) == -1) {
+ 		xlog(L_FATAL, "Could not bind name to socket: %s",
+ 					strerror(errno));
++		close(sock);
+ 		return -1;
+ 	}
+ 
+diff -up nfs-utils-2.3.3/support/nfs/svc_socket.c.orig nfs-utils-2.3.3/support/nfs/svc_socket.c
+--- nfs-utils-2.3.3/support/nfs/svc_socket.c.orig	2018-09-06 14:09:08.000000000 -0400
++++ nfs-utils-2.3.3/support/nfs/svc_socket.c	2019-09-18 10:57:56.717567629 -0400
+@@ -134,6 +134,7 @@ svc_socket (u_long number, int type, int
+       if (ret < 0)
+ 	{
+ 	  xlog(L_ERROR, "svc_socket: socket reuse problem: %m");
++      (void) __close(sock);
+ 	  return ret;
+ 	}
+     }
+diff -up nfs-utils-2.3.3/support/nfs/xcommon.c.orig nfs-utils-2.3.3/support/nfs/xcommon.c
+--- nfs-utils-2.3.3/support/nfs/xcommon.c.orig	2018-09-06 14:09:08.000000000 -0400
++++ nfs-utils-2.3.3/support/nfs/xcommon.c	2019-09-18 10:57:56.717567629 -0400
+@@ -53,14 +53,17 @@ char *
+ xstrconcat3 (const char *s, const char *t, const char *u) {
+      char *res;
+ 
+-     if (!s) s = "";
++     int dofree = 1;
++
++     if (!s) s = "", dofree=0;
+      if (!t) t = "";
+      if (!u) u = "";
+      res = xmalloc(strlen(s) + strlen(t) + strlen(u) + 1);
+      strcpy(res, s);
+      strcat(res, t);
+      strcat(res, u);
+-     free((void *) s);
++     if (dofree)
++         free((void *) s);
+      return res;
+ }
+ 
+@@ -69,7 +72,9 @@ char *
+ xstrconcat4 (const char *s, const char *t, const char *u, const char *v) {
+      char *res;
+ 
+-     if (!s) s = "";
++     int dofree = 1;
++
++     if (!s) s = "", dofree=0;
+      if (!t) t = "";
+      if (!u) u = "";
+      if (!v) v = "";
+@@ -78,7 +83,8 @@ xstrconcat4 (const char *s, const char *
+      strcat(res, t);
+      strcat(res, u);
+      strcat(res, v);
+-     free((void *) s);
++     if (dofree)
++         free((void *) s);
+      return res;
+ }
+ 
+diff -up nfs-utils-2.3.3/support/nfs/xlog.c.orig nfs-utils-2.3.3/support/nfs/xlog.c
+--- nfs-utils-2.3.3/support/nfs/xlog.c.orig	2018-09-06 14:09:08.000000000 -0400
++++ nfs-utils-2.3.3/support/nfs/xlog.c	2019-09-18 10:57:56.717567629 -0400
+@@ -135,10 +135,14 @@ xlog_from_conffile(char *service)
+ 	struct conf_list_node *n;
+ 
+ 	kinds = conf_get_list(service, "debug");
+-	if (!kinds || !kinds->cnt)
++	if (!kinds || !kinds->cnt) {
++		free(kinds);
+ 		return;
++	}
+ 	TAILQ_FOREACH(n, &(kinds->fields), link)
+ 		xlog_sconfig(n->field, 1);
++
++	conf_free_list(kinds);
+ }
+ 
+ int
+diff -up nfs-utils-2.3.3/support/nsm/file.c.orig nfs-utils-2.3.3/support/nsm/file.c
+--- nfs-utils-2.3.3/support/nsm/file.c.orig	2018-09-06 14:09:08.000000000 -0400
++++ nfs-utils-2.3.3/support/nsm/file.c	2019-09-18 10:57:56.717567629 -0400
+@@ -533,6 +533,7 @@ nsm_update_kernel_state(const int state)
+ 	len = snprintf(buf, sizeof(buf), "%d", state);
+ 	if (error_check(len, sizeof(buf))) {
+ 		xlog_warn("Failed to form NSM state number string");
++		close(fd);
+ 		return;
+ 	}
+ 
+diff -up nfs-utils-2.3.3/systemd/rpc-pipefs-generator.c.orig nfs-utils-2.3.3/systemd/rpc-pipefs-generator.c
+--- nfs-utils-2.3.3/systemd/rpc-pipefs-generator.c.orig	2018-09-06 14:09:08.000000000 -0400
++++ nfs-utils-2.3.3/systemd/rpc-pipefs-generator.c	2019-09-18 10:57:56.717567629 -0400
+@@ -69,12 +69,16 @@ int generate_target(char *pipefs_path, c
+ 		return 1;
+ 
+ 	ret = generate_mount_unit(pipefs_path, pipefs_unit, dirname);
+-	if (ret)
++	if (ret) {
++		free(pipefs_unit);
+ 		return ret;
++	}
+ 
+ 	path = malloc(strlen(dirname) + 1 + sizeof(filebase));
+-	if (!path)
++	if (!path) {
++		free(pipefs_unit);
+ 		return 2;
++	}
+ 	sprintf(path, "%s", dirname);
+ 	mkdir(path, 0755);
+ 	strcat(path, filebase);
+@@ -82,6 +86,7 @@ int generate_target(char *pipefs_path, c
+ 	if (!f)
+ 	{
+ 		free(path);
++		free(pipefs_unit);
+ 		return 1;
+ 	}
+ 
+@@ -90,6 +95,7 @@ int generate_target(char *pipefs_path, c
+ 	fprintf(f, "After=%s\n", pipefs_unit);
+ 	fclose(f);
+ 	free(path);
++	free(pipefs_unit);
+ 
+ 	return 0;
+ }
+diff -up nfs-utils-2.3.3/utils/blkmapd/device-discovery.c.orig nfs-utils-2.3.3/utils/blkmapd/device-discovery.c
+--- nfs-utils-2.3.3/utils/blkmapd/device-discovery.c.orig	2018-09-06 14:09:08.000000000 -0400
++++ nfs-utils-2.3.3/utils/blkmapd/device-discovery.c	2019-09-18 10:58:54.444237714 -0400
+@@ -186,8 +186,11 @@ static void bl_add_disk(char *filepath)
+ 		}
+ 	}
+ 
+-	if (disk && diskpath)
++	if (disk && diskpath) {
++		if (serial)
++			free(serial);
+ 		return;
++	}
+ 
+ 	/* add path */
+ 	path = malloc(sizeof(struct bl_disk_path));
+@@ -223,6 +226,8 @@ static void bl_add_disk(char *filepath)
+ 			disk->size = size;
+ 			disk->valid_path = path;
+ 		}
++		if (serial)
++			free(serial);
+ 	}
+ 	return;
+ 
+@@ -232,6 +237,9 @@ static void bl_add_disk(char *filepath)
+ 			free(path->full_path);
+ 		free(path);
+ 	}
++	if (serial)
++		free(serial);
++
+ 	return;
+ }
+ 
+@@ -375,7 +383,12 @@ static void bl_rpcpipe_cb(void)
+ 			if (event->mask & IN_CREATE) {
+ 				BL_LOG_WARNING("nfs pipe dir created\n");
+ 				bl_watch_dir(nfspipe_dir, &nfs_pipedir_wfd);
++				if (bl_pipe_fd >= 0)
++					close(bl_pipe_fd);
+ 				bl_pipe_fd = open(bl_pipe_file, O_RDWR);
++				if (bl_pipe_fd < 0)
++					BL_LOG_ERR("open %s failed: %s\n",
++						event->name, strerror(errno));
+ 			} else if (event->mask & IN_DELETE) {
+ 				BL_LOG_WARNING("nfs pipe dir deleted\n");
+ 				inotify_rm_watch(bl_watch_fd, nfs_pipedir_wfd);
+@@ -388,6 +401,8 @@ static void bl_rpcpipe_cb(void)
+ 				continue;
+ 			if (event->mask & IN_CREATE) {
+ 				BL_LOG_WARNING("blocklayout pipe file created\n");
++				if (bl_pipe_fd >= 0)
++					close(bl_pipe_fd);
+ 				bl_pipe_fd = open(bl_pipe_file, O_RDWR);
+ 				if (bl_pipe_fd < 0)
+ 					BL_LOG_ERR("open %s failed: %s\n",
+diff -up nfs-utils-2.3.3/utils/gssd/krb5_util.c.orig nfs-utils-2.3.3/utils/gssd/krb5_util.c
+--- nfs-utils-2.3.3/utils/gssd/krb5_util.c.orig	2018-09-06 14:09:08.000000000 -0400
++++ nfs-utils-2.3.3/utils/gssd/krb5_util.c	2019-09-18 10:57:56.718567624 -0400
+@@ -698,6 +698,8 @@ gssd_search_krb5_keytab(krb5_context con
+ 				 "we failed to unparse principal name: %s\n",
+ 				 k5err);
+ 			k5_free_kt_entry(context, kte);
++			free(k5err);
++			k5err = NULL;
+ 			continue;
+ 		}
+ 		printerr(4, "Processing keytab entry for principal '%s'\n",
+@@ -899,6 +901,8 @@ find_keytab_entry(krb5_context context,
+ 				k5err = gssd_k5_err_msg(context, code);
+ 				printerr(1, "%s while building principal for '%s'\n",
+ 					 k5err, spn);
++				free(k5err);
++				k5err = NULL;
+ 				continue;
+ 			}
+ 			code = krb5_kt_get_entry(context, kt, princ, 0, 0, kte);
+@@ -1168,7 +1172,8 @@ gssd_get_krb5_machine_cred_list(char ***
+ 		*list = l;
+ 		retval = 0;
+ 		goto out;
+-	}
++	} else
++		free((void *)l);
+   out:
+ 	return retval;
+ }
+@@ -1216,6 +1221,8 @@ gssd_destroy_krb5_machine_creds(void)
+ 			printerr(0, "WARNING: %s while resolving credential "
+ 				    "cache '%s' for destruction\n", k5err,
+ 				    ple->ccname);
++			free(k5err);
++			k5err = NULL;
+ 			continue;
+ 		}
+ 
+diff -up nfs-utils-2.3.3/utils/mount/configfile.c.orig nfs-utils-2.3.3/utils/mount/configfile.c
+--- nfs-utils-2.3.3/utils/mount/configfile.c.orig	2018-09-06 14:09:08.000000000 -0400
++++ nfs-utils-2.3.3/utils/mount/configfile.c	2019-09-18 10:57:56.718567624 -0400
+@@ -404,7 +404,7 @@ char *conf_get_mntopts(char *spec, char
+ 
+ 	/* list_size + optlen + ',' + '\0' */
+ 	config_opts = calloc(1, (list_size+optlen+2));
+-	if (server == NULL) {
++	if (config_opts == NULL) {
+ 		xlog_warn("conf_get_mountops: Unable calloc memory for config_opts"); 
+ 		free_all();
+ 		return mount_opts;
+diff -up nfs-utils-2.3.3/utils/mountd/cache.c.orig nfs-utils-2.3.3/utils/mountd/cache.c
+--- nfs-utils-2.3.3/utils/mountd/cache.c.orig	2019-09-18 10:57:14.190810677 -0400
++++ nfs-utils-2.3.3/utils/mountd/cache.c	2019-09-18 10:57:56.718567624 -0400
+@@ -1240,7 +1240,7 @@ static struct exportent *lookup_junction
+ 		goto out;
+ 	}
+ 	status = nfs_get_basic_junction(pathname, &locations);
+-	switch (status) {
++	if (status) {
+ 		xlog(L_WARNING, "Dangling junction %s: %s",
+ 			pathname, strerror(status));
+ 		goto out;
+@@ -1248,10 +1248,11 @@ static struct exportent *lookup_junction
+ 
+ 	parent = lookup_parent_export(dom, pathname, ai);
+ 	if (parent == NULL)
+-		goto out;
++		goto free_locations;
+ 
+ 	exp = locations_to_export(locations, pathname, parent);
+ 
++free_locations:
+ 	nfs_free_locations(locations->ns_list);
+ 	free(locations);
+ 
+diff -up nfs-utils-2.3.3/utils/mountd/fsloc.c.orig nfs-utils-2.3.3/utils/mountd/fsloc.c
+--- nfs-utils-2.3.3/utils/mountd/fsloc.c.orig	2018-09-06 14:09:08.000000000 -0400
++++ nfs-utils-2.3.3/utils/mountd/fsloc.c	2019-09-18 10:57:56.719567618 -0400
+@@ -102,6 +102,7 @@ static struct servers *parse_list(char *
+ 		cp = strchr(list[i], '@');
+ 		if ((!cp) || list[i][0] != '/') {
+ 			xlog(L_WARNING, "invalid entry '%s'", list[i]);
++			free(mp);
+ 			continue; /* XXX Need better error handling */
+ 		}
+ 		res->h_mp[i] = mp;
+diff -up nfs-utils-2.3.3/utils/mount/nfsmount.c.orig nfs-utils-2.3.3/utils/mount/nfsmount.c
+--- nfs-utils-2.3.3/utils/mount/nfsmount.c.orig	2018-09-06 14:09:08.000000000 -0400
++++ nfs-utils-2.3.3/utils/mount/nfsmount.c	2019-09-18 10:57:56.730567555 -0400
+@@ -452,6 +452,7 @@ parse_options(char *old_opts, struct nfs
+ 	nfs_error(_("%s: Bad nfs mount parameter: %s\n"), progname, opt);
+  out_bad:
+ 	free(tmp_opts);
++	free(mounthost);
+ 	return 0;
+ }
+ 
+diff -up nfs-utils-2.3.3/utils/mount/stropts.c.orig nfs-utils-2.3.3/utils/mount/stropts.c
+--- nfs-utils-2.3.3/utils/mount/stropts.c.orig	2019-09-18 10:57:14.183810717 -0400
++++ nfs-utils-2.3.3/utils/mount/stropts.c	2019-09-18 10:57:56.730567555 -0400
+@@ -982,8 +982,11 @@ static int nfs_try_mount(struct nfsmount
+ 		}
+ 
+ 		if (!nfs_append_addr_option(address->ai_addr,
+-					    address->ai_addrlen, mi->options))
++					    address->ai_addrlen, mi->options)) {
++			freeaddrinfo(address);
++			errno = ENOMEM;
+ 			return 0;
++		}
+ 		mi->address = address;
+ 	}
+ 
+diff -up nfs-utils-2.3.3/utils/nfsdcltrack/sqlite.c.orig nfs-utils-2.3.3/utils/nfsdcltrack/sqlite.c
+--- nfs-utils-2.3.3/utils/nfsdcltrack/sqlite.c.orig	2018-09-06 14:09:08.000000000 -0400
++++ nfs-utils-2.3.3/utils/nfsdcltrack/sqlite.c	2019-09-18 10:57:56.731567549 -0400
+@@ -215,6 +215,8 @@ sqlite_maindb_init_v2(void)
+ 				&err);
+ 	if (ret != SQLITE_OK) {
+ 		xlog(L_ERROR, "Unable to begin transaction: %s", err);
++		if (err)
++			sqlite3_free(err);
+ 		return ret;
+ 	}
+ 
+diff -up nfs-utils-2.3.3/support/nfsidmap/libnfsidmap.c.orig nfs-utils-2.3.3/support/nfsidmap/libnfsidmap.c
+--- nfs-utils-2.3.3/support/nfsidmap/libnfsidmap.c.orig	2019-11-11 08:49:06.044870974 -0500
++++ nfs-utils-2.3.3/support/nfsidmap/libnfsidmap.c	2019-11-11 09:19:10.391896845 -0500
+@@ -486,6 +486,9 @@ out:
+ 	if (gss_methods)
+ 		conf_free_list(gss_methods);
+ 
++	if (nfs4_methods)
++		conf_free_list(nfs4_methods);
++
+ 	return ret ? -ENOENT: 0;
+ }
+ 
+diff -up nfs-utils-2.3.3/utils/gssd/krb5_util.c.orig nfs-utils-2.3.3/utils/gssd/krb5_util.c
+--- nfs-utils-2.3.3/utils/gssd/krb5_util.c.orig	2019-11-11 08:49:06.045870979 -0500
++++ nfs-utils-2.3.3/utils/gssd/krb5_util.c	2019-11-11 09:19:10.393896856 -0500
+@@ -911,6 +911,8 @@ find_keytab_entry(krb5_context context,
+ 				k5err = gssd_k5_err_msg(context, code);
+ 				printerr(3, "%s while getting keytab entry for '%s'\n",
+ 					 k5err, spn);
++				free(k5err);
++				k5err = NULL;
+ 				/*
+ 				 * We tried the active directory machine account
+ 				 * with the hostname part as-is and failed...
+@@ -1013,6 +1015,8 @@ query_krb5_ccache(const char* cred_cache
+ 	char *str = NULL;
+ 	char *princstring;
+ 
++	*ret_princname = *ret_realm = NULL;
++
+ 	ret = krb5_init_context(&context);
+ 	if (ret) 
+ 		return 0;
+@@ -1047,7 +1051,7 @@ err_princ:
+ 	krb5_cc_close(context, ccache);
+ err_cache:
+ 	krb5_free_context(context);
+-	return found;
++	return (*ret_princname && *ret_realm);
+ }
+ 
+ /*==========================*/
+@@ -1230,6 +1234,8 @@ gssd_destroy_krb5_machine_creds(void)
+ 			k5err = gssd_k5_err_msg(context, code);
+ 			printerr(0, "WARNING: %s while destroying credential "
+ 				    "cache '%s'\n", k5err, ple->ccname);
++			free(k5err);
++			k5err = NULL;
+ 		}
+ 	}
+ 	krb5_free_context(context);
+diff -up nfs-utils-2.3.3/utils/idmapd/idmapd.c.orig nfs-utils-2.3.3/utils/idmapd/idmapd.c
+--- nfs-utils-2.3.3/utils/idmapd/idmapd.c.orig	2019-11-11 08:49:06.029870889 -0500
++++ nfs-utils-2.3.3/utils/idmapd/idmapd.c	2019-11-11 09:19:10.393896856 -0500
+@@ -517,14 +517,16 @@ static void
+ clntscancb(int UNUSED(fd), short UNUSED(which), void *data)
+ {
+ 	struct idmap_clientq *icq = data;
+-	struct idmap_client *ic;
++	struct idmap_client *ic, *ic_next;
+ 
+-	TAILQ_FOREACH(ic, icq, ic_next)
++	for (ic = TAILQ_FIRST(icq); ic != NULL; ic = ic_next) { 
++		ic_next = TAILQ_NEXT(ic, ic_next);
+ 		if (ic->ic_fd == -1 && nfsopen(ic) == -1) {
+ 			close(ic->ic_dirfd);
+ 			TAILQ_REMOVE(icq, ic, ic_next);
+ 			free(ic);
+ 		}
++	}
+ }
+ 
+ static void
+diff -up nfs-utils-2.3.3/utils/statd/monitor.c.orig nfs-utils-2.3.3/utils/statd/monitor.c
+--- nfs-utils-2.3.3/utils/statd/monitor.c.orig	2018-09-06 14:09:08.000000000 -0400
++++ nfs-utils-2.3.3/utils/statd/monitor.c	2019-11-11 09:19:10.393896856 -0500
+@@ -66,7 +66,7 @@ sm_mon_1_svc(struct mon *argp, struct sv
+ 			*my_name  = argp->mon_id.my_id.my_name;
+ 	struct my_id	*id = &argp->mon_id.my_id;
+ 	char		*cp;
+-	notify_list	*clnt;
++	notify_list	*clnt = NULL;
+ 	struct sockaddr_in my_addr = {
+ 		.sin_family		= AF_INET,
+ 		.sin_addr.s_addr	= htonl(INADDR_LOOPBACK),
+@@ -223,6 +224,7 @@ sm_mon_1_svc(struct mon *argp, struct sv
+ 
+ failure:
+ 	xlog_warn("STAT_FAIL to %s for SM_MON of %s", my_name, mon_name);
++	free(clnt);
+ 	return (&result);
+ }
+ 
+@@ -242,6 +244,7 @@ load_one_host(const char *hostname,
+ 	clnt->dns_name = strdup(hostname);
+ 	if (clnt->dns_name == NULL) {
+ 		nlist_free(NULL, clnt);
++		free(clnt);
+ 		return 0;
+ 	}
+ 
+diff -up nfs-utils-2.3.3/utils/statd/notlist.c.orig nfs-utils-2.3.3/utils/statd/notlist.c
+--- nfs-utils-2.3.3/utils/statd/notlist.c.orig	2018-09-06 14:09:08.000000000 -0400
++++ nfs-utils-2.3.3/utils/statd/notlist.c	2019-11-11 09:19:10.394896861 -0500
+@@ -210,7 +210,6 @@ nlist_free(notify_list **head, notify_li
+ 	if (NL_MON_NAME(entry))
+ 		free(NL_MON_NAME(entry));
+ 	free(entry->dns_name);
+-	free(entry);
+ }
+ 
+ /* 
+@@ -219,8 +218,14 @@ nlist_free(notify_list **head, notify_li
+ void 
+ nlist_kill(notify_list **head)
+ {
+-	while (*head)
++	notify_list *next;
++
++	while (*head) {
++		next = (*head)->next;
+ 		nlist_free(head, *head);
++		free(*head);
++		*head = next;
++	}
+ }
+ 
+ /*

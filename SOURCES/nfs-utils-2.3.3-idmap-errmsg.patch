@@ -1,0 +1,12 @@
+diff -up nfs-utils-2.3.3/utils/nfsidmap/nfsidmap.c.orig nfs-utils-2.3.3/utils/nfsidmap/nfsidmap.c
+--- nfs-utils-2.3.3/utils/nfsidmap/nfsidmap.c.orig	2020-05-05 14:07:24.642693179 -0400
++++ nfs-utils-2.3.3/utils/nfsidmap/nfsidmap.c	2020-05-05 14:08:39.054849153 -0400
+@@ -432,7 +432,7 @@ int main(int argc, char **argv)
+ 
+ 	xlog_stderr(verbose);
+ 	if ((argc - optind) != 2) {
+-		xlog_warn("Bad arg count. Check /etc/request-key.conf");
++		xlog_warn("Bad arg count. Check /etc/request-key.d/request-key.conf");
+ 		xlog_warn(USAGE, progname);
+ 		return EXIT_FAILURE;
+ 	}

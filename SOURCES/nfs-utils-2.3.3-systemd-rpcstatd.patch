@@ -1,0 +1,13 @@
+diff -up nfs-utils-2.3.3/systemd/rpc-statd.service.orig nfs-utils-2.3.3/systemd/rpc-statd.service
+--- nfs-utils-2.3.3/systemd/rpc-statd.service.orig	2018-09-06 14:09:08.000000000 -0400
++++ nfs-utils-2.3.3/systemd/rpc-statd.service	2022-08-02 11:02:44.327397404 -0400
+@@ -4,7 +4,8 @@ DefaultDependencies=no
+ Conflicts=umount.target
+ Requires=nss-lookup.target rpcbind.socket
+ Wants=network-online.target
+-After=network-online.target nss-lookup.target rpcbind.socket
++Wants=rpc-statd-notify.service
++After=network-online.target nss-lookup.target rpcbind.service
+ 
+ PartOf=nfs-utils.service
+ 
