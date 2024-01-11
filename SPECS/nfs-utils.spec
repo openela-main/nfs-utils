@@ -2,7 +2,7 @@ Summary: NFS utilities and supporting clients and daemons for the kernel NFS ser
 Name: nfs-utils
 URL: http://linux-nfs.org/
 Version: 2.5.4
-Release: 18%{?dist}
+Release: 20%{?dist}
 Epoch: 1
 
 # group all 32bit related archs
@@ -41,6 +41,12 @@ Patch013: nfs-utils-2.5.4-nfsd-man-4vers.patch
 Patch014: nfs-utils-2.5.4-mount-null-ptr.patch
 Patch015: nfs-utils-2.5.4-nfsrahead-cmd.patch
 Patch016: nfs-utils-2.5.4-covscan-return-value.patch
+
+#
+# RHEL9.3
+#
+Patch017: nfs-utils-2.5.4-juncs-automount.patch
+Patch018: nfs-utils-2.5.4-man-nfsconf.patch
 
 Patch100: nfs-utils-1.2.1-statdpath-man.patch
 Patch101: nfs-utils-1.2.1-exp-subtree-warn-off.patch
@@ -482,6 +488,13 @@ fi
 %{_mandir}/*/nfsiostat.8.gz
 
 %changelog
+* Mon Aug 7 2023 Steve Dickson <steved@redhat.com> 2.5.4-20
+- Fixed a regression in the junction code (bz 2213669)
+
+* Tue Jun  6 2023 Steve Dickson <steved@redhat.com> 2.5.4-19
+- Don't allow junction tests to trigger automounts (bz 2148353)
+- Fix typo in man page nfs.conf.man (bz 2203092)
+
 * Thu Jan 26 2023 Steve Dickson <steved@redhat.com> 2.5.4-18
 - Covscan Scan: Wrong Check of Return Value (bz 2151968)
 
