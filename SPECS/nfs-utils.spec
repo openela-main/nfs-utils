@@ -2,7 +2,7 @@ Summary: NFS utilities and supporting clients and daemons for the kernel NFS ser
 Name: nfs-utils
 URL: http://linux-nfs.org/
 Version: 2.5.4
-Release: 20%{?dist}
+Release: 25%{?dist}
 Epoch: 1
 
 # group all 32bit related archs
@@ -47,6 +47,17 @@ Patch016: nfs-utils-2.5.4-covscan-return-value.patch
 #
 Patch017: nfs-utils-2.5.4-juncs-automount.patch
 Patch018: nfs-utils-2.5.4-man-nfsconf.patch
+
+#
+# RHEL9.4
+#
+Patch019: nfs-utils-2.5.4-gssd-dns-failure.patch
+Patch020: nfs-utils-2.5.4-gssd-bad-integ-error-support.patch
+Patch021: nfs-utils-2.5.4-mount-mountconf-typo.patch
+Patch022: nfs-utils-2.5.4-support-for-rpc-with-tls.patch
+Patch023: nfs-utils-2.5.4-fix-typos-in-messages.patch
+Patch024: nfs-utils-2.5.4-blkmapd-double-free.patch
+Patch025: nfs-utils-2.5.4-rpcdebug-check-read-return.patch
 
 Patch100: nfs-utils-1.2.1-statdpath-man.patch
 Patch101: nfs-utils-1.2.1-exp-subtree-warn-off.patch
@@ -488,6 +499,25 @@ fi
 %{_mandir}/*/nfsiostat.8.gz
 
 %changelog
+* Sun Feb 18 2024 Steve Dickson <steved@redhat.com> 2.5.4-25
+- Update: Typos and documentation fixes (RHEL-22654)
+
+* Fri Feb 16 2024 Pavel Reichl <preichl@redhat.com> - 2.5.4-24
+- Fix gating (RHEL-25837)
+
+* Tue Feb  6 2024 Steve Dickson <steved@redhat.com> 2.5.4-23
+- Typos and documentation fixes (RHEL-22654)
+- blkmapd: fix coredump in bl_add_disk (RHEL-7941)
+- rpcdebug: avoid buffer underflow (RHEL-7931)
+
+* Thu Feb  1 2024 Steve Dickson <steved@redhat.com> 2.5.4-22
+- nfsmount.conf: Fix typo of the attribute name (RHEL-7904)
+- Update to support for the NFS RPC-with-TLS (RHEL-14754)
+
+* Thu Jan 11 2024 Steve Dickson <steved@redhat.com> 2.5.4-21
+- gssd: fix handling DNS lookup failure (RHEL-15035)
+- gssd: handle KRB5_AP_ERR_BAD_INTEGRITY errors (RHEL-15034)
+
 * Mon Aug 7 2023 Steve Dickson <steved@redhat.com> 2.5.4-20
 - Fixed a regression in the junction code (bz 2213669)
 
