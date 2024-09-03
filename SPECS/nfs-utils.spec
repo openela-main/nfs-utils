@@ -2,7 +2,7 @@ Summary: NFS utilities and supporting clients and daemons for the kernel NFS ser
 Name: nfs-utils
 URL: http://linux-nfs.org/
 Version: 2.5.4
-Release: 25%{?dist}
+Release: 26%{?dist}
 Epoch: 1
 
 # group all 32bit related archs
@@ -58,6 +58,11 @@ Patch022: nfs-utils-2.5.4-support-for-rpc-with-tls.patch
 Patch023: nfs-utils-2.5.4-fix-typos-in-messages.patch
 Patch024: nfs-utils-2.5.4-blkmapd-double-free.patch
 Patch025: nfs-utils-2.5.4-rpcdebug-check-read-return.patch
+
+#
+# RHEL9.4-z
+#
+Patch026: nfs-utils-2.5.4-gssd-segfault.patch
 
 Patch100: nfs-utils-1.2.1-statdpath-man.patch
 Patch101: nfs-utils-1.2.1-exp-subtree-warn-off.patch
@@ -499,6 +504,9 @@ fi
 %{_mandir}/*/nfsiostat.8.gz
 
 %changelog
+* Fri Aug 16 2024 Steve Dickson <steved@redhat.com> 2.5.4-26
+- rpc-gssd.service has status failed (due to rpc.gssd segfault) (RHEL-53860)
+
 * Sun Feb 18 2024 Steve Dickson <steved@redhat.com> 2.5.4-25
 - Update: Typos and documentation fixes (RHEL-22654)
 

@@ -1,0 +1,32 @@
+commit 92995e0d38dc00e930c562cf936220f83c09d082
+Author: Paulo Andrade <pandrade@redhat.com>
+Date:   Tue Jul 23 12:03:30 2024 -0400
+
+    rpc-gssd.service has status failed (due to rpc.gssd segfault)
+    
+    Ensure strings are not NULL before doing a strdup() in error path.
+    
+    Fixes: https://issues.redhat.com/browse/RHEL-43286
+    Signed-off-by: Steve Dickson <steved@redhat.com>
+
+diff --git a/utils/gssd/gssd.c b/utils/gssd/gssd.c
+index d7a28225..01ce7d18 100644
+--- a/utils/gssd/gssd.c
++++ b/utils/gssd/gssd.c
+@@ -365,12 +365,12 @@ gssd_read_service_info(int dirfd, struct clnt_info *clp)
+ 
+ fail:
+ 	printerr(0, "ERROR: failed to parse %s/info\n", clp->relpath);
+-	clp->upcall_address = strdup(address);
+-	clp->upcall_port = strdup(port);
++	clp->upcall_address = address ? strdup(address) : NULL;
++	clp->upcall_port = port ? strdup(port) : NULL;
+ 	clp->upcall_program = program;
+ 	clp->upcall_vers = version;
+-	clp->upcall_protoname = strdup(protoname);
+-	clp->upcall_service = strdup(service);
++	clp->upcall_protoname = protoname ? strdup(protoname) : NULL;
++	clp->upcall_service = service ? strdup(service) : NULL;
+ 	free(servername);
+ 	free(protoname);
+ 	clp->servicename = NULL;
