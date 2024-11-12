@@ -2,7 +2,7 @@ Summary: NFS utilities and supporting clients and daemons for the kernel NFS ser
 Name: nfs-utils
 URL: http://linux-nfs.org/
 Version: 2.5.4
-Release: 26%{?dist}
+Release: 27%{?dist}
 Epoch: 1
 
 # group all 32bit related archs
@@ -60,9 +60,10 @@ Patch024: nfs-utils-2.5.4-blkmapd-double-free.patch
 Patch025: nfs-utils-2.5.4-rpcdebug-check-read-return.patch
 
 #
-# RHEL9.4-z
+# RHEL9.5
 #
-Patch026: nfs-utils-2.5.4-gssd-segfault.patch
+Patch026: nfs-utils-2.5.4-gssd-allowed-enctypes.patch
+Patch027: nfs-utils-2.5.4-gssd-segfault.patch
 
 Patch100: nfs-utils-1.2.1-statdpath-man.patch
 Patch101: nfs-utils-1.2.1-exp-subtree-warn-off.patch
@@ -504,8 +505,11 @@ fi
 %{_mandir}/*/nfsiostat.8.gz
 
 %changelog
-* Fri Aug 16 2024 Steve Dickson <steved@redhat.com> 2.5.4-26
-- rpc-gssd.service has status failed (due to rpc.gssd segfault) (RHEL-53860)
+* Fri Aug  9 2024 Steve Dickson <steved@redhat.com> 2.5.4-27
+- rpc-gssd.service has status failed (due to rpc.gssd segfault) (RHEL-43286)
+
+* Tue Apr 30 2024 Steve Dickson <steved@redhat.com> 2.5.4-26
+- gssd: add support for an "allowed-enctypes" option in nfs.conf (RHEL-31858)
 
 * Sun Feb 18 2024 Steve Dickson <steved@redhat.com> 2.5.4-25
 - Update: Typos and documentation fixes (RHEL-22654)
