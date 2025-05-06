@@ -2,7 +2,7 @@ Summary: NFS utilities and supporting clients and daemons for the kernel NFS ser
 Name: nfs-utils
 URL: http://linux-nfs.org/
 Version: 2.5.4
-Release: 27%{?dist}
+Release: 27%{?dist}.1
 Epoch: 1
 
 # group all 32bit related archs
@@ -64,6 +64,11 @@ Patch025: nfs-utils-2.5.4-rpcdebug-check-read-return.patch
 #
 Patch026: nfs-utils-2.5.4-gssd-allowed-enctypes.patch
 Patch027: nfs-utils-2.5.4-gssd-segfault.patch
+
+#
+# RHEL9.5-z
+#
+Patch028: nfs-utils-2.5.4-conffile-argument.patch
 
 Patch100: nfs-utils-1.2.1-statdpath-man.patch
 Patch101: nfs-utils-1.2.1-exp-subtree-warn-off.patch
@@ -505,6 +510,9 @@ fi
 %{_mandir}/*/nfsiostat.8.gz
 
 %changelog
+* Mon Mar 10 2025 Scott Mayhew <smayhew@redhat.com> - 2.5.4-27.1
+- conffile: add 'arg' argument to conf_remove_now() (RHEL-82881)
+
 * Fri Aug  9 2024 Steve Dickson <steved@redhat.com> 2.5.4-27
 - rpc-gssd.service has status failed (due to rpc.gssd segfault) (RHEL-43286)
 
