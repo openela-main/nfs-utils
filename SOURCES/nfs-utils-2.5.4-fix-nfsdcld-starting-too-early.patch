@@ -1,0 +1,39 @@
+From 092971c4741814d831e8172eb3332e53aeaef890 Mon Sep 17 00:00:00 2001
+From: Seiichi Ikarashi <s.ikarashi@fujitsu.com>
+Date: Fri, 18 Oct 2024 08:29:57 -0400
+Subject: [nfs-utils PATCH] nfsdcld: prevent from accessing
+ /var/lib/nfs/nfsdcld in read-only file system during boot
+
+I saw a VMWare guest that hit a rare condition during boot;
+nfsdcld started too early to check access on /var/lib/nfs/nfsdcld which were
+still in read-only file system as follows:
+
+  nfsdcld[...]: Unexpected error when checking access on /var/lib/nfs/nfsdcld: Read-only file system
+  systemd[1]: nfsdcld.service: Main process exited, code=exited, status=226/NAMESPACE
+  systemd[1]: nfsdcld.service: Failed with result 'exit-code'.
+
+nfsdcld.service needs to wait the root file system to be remounted at least.
+
+Reviewed-by: Jeff Layton <jlayton@kernel.org>
+Signed-off-by: Seiichi Ikarashi <s.ikarashi@fujitsu.com>
+Signed-off-by: Steve Dickson <steved@redhat.com>
+---
+ systemd/nfsdcld.service | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/systemd/nfsdcld.service b/systemd/nfsdcld.service
+index 3ced5658..188123df 100644
+--- a/systemd/nfsdcld.service
++++ b/systemd/nfsdcld.service
+@@ -4,7 +4,7 @@ Documentation=man:nfsdcld(8)
+ DefaultDependencies=no
+ Conflicts=umount.target
+ Requires=rpc_pipefs.target proc-fs-nfsd.mount
+-After=rpc_pipefs.target proc-fs-nfsd.mount
++After=rpc_pipefs.target proc-fs-nfsd.mount systemd-remount-fs.service
+ 
+ [Service]
+ Type=forking
+-- 
+2.48.1
+

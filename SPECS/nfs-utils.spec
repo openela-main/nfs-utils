@@ -2,7 +2,7 @@ Summary: NFS utilities and supporting clients and daemons for the kernel NFS ser
 Name: nfs-utils
 URL: http://linux-nfs.org/
 Version: 2.5.4
-Release: 27%{?dist}.1
+Release: 34%{?dist}
 Epoch: 1
 
 # group all 32bit related archs
@@ -66,9 +66,14 @@ Patch026: nfs-utils-2.5.4-gssd-allowed-enctypes.patch
 Patch027: nfs-utils-2.5.4-gssd-segfault.patch
 
 #
-# RHEL9.5-z
+# RHEL9.6
 #
-Patch028: nfs-utils-2.5.4-conffile-argument.patch
+Patch028: nfs-utils-2.5.4-rpcidmapd-nfsopen-failure.patch
+Patch029: nfs-utils-2.5.4-mount-writable.patch
+Patch030: nfs-utils-2.5.4-mount-v3-retry.patch
+Patch031: nfs-utils-2.5.4-conffile-argument.patch
+Patch032: nfs-utils-2.5.4-fix-nfsdcld-starting-too-early.patch
+Patch033: nfs-utils-2.5.4-nfsiostat-fixes.patch
 
 Patch100: nfs-utils-1.2.1-statdpath-man.patch
 Patch101: nfs-utils-1.2.1-exp-subtree-warn-off.patch
@@ -332,7 +337,6 @@ if [ $1 -eq 0 ]; then
 	%systemd_preun nfs-client.target
 
 	rm -rf /etc/nfsmount.conf.d
-    rm -rf /var/lib/nfs/v4recovery
 fi
 
 %postun
@@ -365,9 +369,9 @@ fi
 %dir %attr(700,rpcuser,rpcuser) %{_sharedstatedir}/nfs/statd
 %dir %attr(700,rpcuser,rpcuser) %{_sharedstatedir}/nfs/statd/sm
 %dir %attr(700,rpcuser,rpcuser) %{_sharedstatedir}/nfs/statd/sm.bak
-%ghost %attr(644,rpcuser,rpcuser) %{_statdpath}/state
-%config(noreplace) %{_sharedstatedir}/nfs/etab
-%config(noreplace) %{_sharedstatedir}/nfs/rmtab
+%ghost %attr(644,root,root) %{_statdpath}/state
+%ghost %attr(644,root,root) %{_sharedstatedir}/nfs/etab
+%ghost %attr(644,root,root) %{_sharedstatedir}/nfs/rmtab
 %config(noreplace) %{_sysconfdir}/request-key.d/id_resolver.conf
 %config(noreplace) %{_sysconfdir}/modprobe.d/lockd.conf
 %config(noreplace) %{_sysconfdir}/nfs.conf
@@ -425,7 +429,7 @@ fi
 %dir %attr(700,rpcuser,rpcuser) %{_sharedstatedir}/nfs/statd
 %dir %attr(700,rpcuser,rpcuser) %{_sharedstatedir}/nfs/statd/sm
 %dir %attr(700,rpcuser,rpcuser) %{_sharedstatedir}/nfs/statd/sm.bak
-%ghost %attr(644,rpcuser,rpcuser) %{_statdpath}/state
+%ghost %attr(644,root,root) %{_statdpath}/state
 %config(noreplace) %{_sysconfdir}/nfsmount.conf
 %config(noreplace) %{_sysconfdir}/nfs.conf
 %config(noreplace) %{_sysconfdir}/request-key.d/id_resolver.conf
@@ -466,6 +470,7 @@ fi
 
 %files -n nfsv4-client-utils
 %config(noreplace) /etc/nfsmount.conf
+%config(noreplace) %{_sysconfdir}/nfs.conf
 %dir %{_sharedstatedir}/nfs/v4recovery
 %dir %attr(555, root, root) %{_sharedstatedir}/nfs/rpc_pipefs
 %dir %{_libexecdir}/nfs-utils
@@ -510,8 +515,37 @@ fi
 %{_mandir}/*/nfsiostat.8.gz
 
 %changelog
-* Mon Mar 10 2025 Scott Mayhew <smayhew@redhat.com> - 2.5.4-27.1
-- conffile: add 'arg' argument to conf_remove_now() (RHEL-82881)
+* Sun Feb 16 2025 Steve Dickson <steved@redhat.com> 2.5.4-34
+- mountstats/nfsiostat: bugfixes for iostat (RHEL-72243)
+
+* Sat Feb 15 2025 Steve Dickson <steved@redhat.com> 2.5.4-33
+- Add nfs.conf to nfsv4-client-utils package (RHEL-72013)
+
+* Fri Feb  7 2025 Scott Mayhew <smayhew@redhat.com> 2.5.4-32
+- Undo 'Add explicit version requirement for libnfsidmap' from previous build (RHEL-78107)
+- Undo 'Add --disable-sbin-override for when /sbin is a symlink' from previous build (RHEL-69771)
+- Undo 'Move remaining binaries from /sbin to /usr/sbin' from previous build (RHEL-69771)
+
+* Thu Feb  6 2025 Scott Mayhew <smayhew@redhat.com> 2.5.4-31
+- nfsdcld: prevent from accessing /var/lib/nfs/nfsdcld in read-only file system during boot (RHEL-78177)
+- Replace functional gating tests with the ones from RHEL10 (RHEL-78110)
+- Add explicit version requirement for libnfsidmap (RHEL-78107)
+- Add --disable-sbin-override for when /sbin is a symlink (RHEL-69771)
+- Move remaining binaries from /sbin to /usr/sbin (RHEL-69771)
+
+* Mon Feb  3 2025 Scott Mayhew <smayhew@redhat.com> 2.5.4-30
+- fix ownership of /var/lib/nfs/statd/state (RHEL-72823)
+- /var/lib/nfs/{etab,rmtab} should not be marked as config files (RHEL-64340)
+
+* Wed Jan  8 2025 Steve Dickson <steved@redhat.com> 2.5.4-29
+- conffile: add 'arg' argument to conf_remove_now() (RHEL-70923)
+
+* Sun Nov 24 2024 Steve Dickson <steved@redhat.com> 2.5.4-28
+-  Makefile.am: allow mount.nfs to be writeable by owner (RHEL-68701)
+-  mount.nfs: retry NFSv3 mount after NFSv4 failure in auto negotiation (RHEL-68574)
+
+* Thu Nov 14 2024 Steve Dickson <steved@redhat.com> 2.5.4-28
+- rpc.idmapd: nfsopen() failures should not be fatal (RHEL-65727)
 
 * Fri Aug  9 2024 Steve Dickson <steved@redhat.com> 2.5.4-27
 - rpc-gssd.service has status failed (due to rpc.gssd segfault) (RHEL-43286)

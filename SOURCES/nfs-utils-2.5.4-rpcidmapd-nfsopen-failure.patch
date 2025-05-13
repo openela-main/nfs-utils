@@ -1,0 +1,31 @@
+commit fdc5081a8f48dd161ea94fff11bf0afd8d901747
+Author: Salvatore Bonaccorso <carnil@debian.org>
+Date:   Fri Sep 20 12:30:07 2024 -0400
+
+    rpc.idmapd: nfsopen() failures should not be fatal
+    
+    dirscancb() loops over all clnt* subdirectories of /run/rpc_pipefs/nfs/.
+    Some of these directories contain /idmap files, others don't. nfsopen()
+    returns -1 for the latter; we then want to skip the directory, not abort
+    the entire scan.
+    
+    Reported-by: Sergio Gelato <sergio.gelato@astro.su.se>
+    Closes: https://lore.kernel.org/linux-nfs/ZmCB_zqdu2cynJ1M@astro.su.se/
+    Link: https://bugs.debian.org/1072573
+    Patch-originally-by: Sergio Gelato <sergio.gelato@astro.su.se>
+    Signed-off-by: Salvatore Bonaccorso <carnil@debian.org>
+    Signed-off-by: Steve Dickson <steved@redhat.com>
+
+diff --git a/utils/idmapd/idmapd.c b/utils/idmapd/idmapd.c
+index cd9a965f..5231f56d 100644
+--- a/utils/idmapd/idmapd.c
++++ b/utils/idmapd/idmapd.c
+@@ -556,7 +556,7 @@ dirscancb(int fd, short UNUSED(which), void *data)
+ 			if (nfsopen(ic) == -1) {
+ 				close(ic->ic_dirfd);
+ 				free(ic);
+-				goto out;
++				continue;
+ 			}
+ 
+ 			if (verbose > 2)

@@ -1,0 +1,12 @@
+diff -up nfs-utils-2.5.4/utils/mount/stropts.c.orig nfs-utils-2.5.4/utils/mount/stropts.c
+--- nfs-utils-2.5.4/utils/mount/stropts.c.orig	2024-11-24 08:36:03.734689817 -0500
++++ nfs-utils-2.5.4/utils/mount/stropts.c	2024-11-24 08:37:52.541239493 -0500
+@@ -973,7 +973,7 @@ fall_back:
+ 	if ((result = nfs_try_mount_v3v2(mi, FALSE)))
+ 		return result;
+ 
+-	if (errno != EBUSY && errno != EACCES)
++	if (errno != EBUSY && errno != EACCES && errno != ETIMEDOUT)
+ 		errno = olderrno;
+ 
+ 	return result;
