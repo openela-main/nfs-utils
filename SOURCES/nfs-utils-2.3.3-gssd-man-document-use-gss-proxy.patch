@@ -1,0 +1,47 @@
+From 7511a77fc7eb7bd3ae38fcf54d49a47c25c3ed50 Mon Sep 17 00:00:00 2001
+From: Scott Mayhew <smayhew@redhat.com>
+Date: Mon, 24 Mar 2025 08:59:24 -0400
+Subject: [nfs-utils PATCH] gssd.man: add documentation for use-gss-proxy
+ nfs.conf option
+
+Signed-off-by: Scott Mayhew <smayhew@redhat.com>
+Signed-off-by: Steve Dickson <steved@redhat.com>
+---
+ utils/gssd/gssd.man | 14 +++++++++++++-
+ 1 file changed, 13 insertions(+), 1 deletion(-)
+
+diff --git a/utils/gssd/gssd.man b/utils/gssd/gssd.man
+index c735eff6..4a75b056 100644
+--- a/utils/gssd/gssd.man
++++ b/utils/gssd/gssd.man
+@@ -392,6 +392,17 @@ Setting to
+ is equivalent to providing the
+ .B -H
+ flag.
++.TP
++.B use-gss-proxy
++Setting this to 1 allows
++.BR gssproxy (8)
++to intercept GSSAPI calls and service them on behalf of
++.BR rpc.gssd ,
++enabling certain features such as keytab-based client initiation.
++Note that this is unrelated to the functionality that
++.BR gssproxy (8)
++provides on behalf of the NFS server.  For more information, see
++.BR https://github.com/gssapi/gssproxy/blob/main/docs/NFS.md#nfs-client .
+ .P
+ In addtion, the following value is recognized from the
+ .B [general]
+@@ -405,7 +416,8 @@ Equivalent to
+ .BR rpc.svcgssd (8),
+ .BR kerberos (1),
+ .BR kinit (1),
+-.BR krb5.conf (5)
++.BR krb5.conf (5),
++.BR gssproxy (8)
+ .SH AUTHORS
+ .br
+ Dug Song <dugsong@umich.edu>
+-- 
+2.48.1
+

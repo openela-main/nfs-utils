@@ -2,7 +2,7 @@ Summary: NFS utilities and supporting clients and daemons for the kernel NFS ser
 Name: nfs-utils
 URL: http://linux-nfs.org/
 Version: 2.3.3
-Release: 59%{?dist}
+Release: 64%{?dist}
 Epoch: 1
 
 # group all 32bit related archs
@@ -108,6 +108,16 @@ Patch055: nfs-utils-2.3.3-systemd-rpcstatd.patch
 #
 Patch056: nfs-utils-2.3.3-mountd-v4clnts.patch
 Patch057: nfs-utils-2.3.3-covscan-return-value.patch
+
+#
+# RHEL 8.10.z
+#
+Patch058: nfs-utils-2.3.3-gssd-man-document-use-gss-proxy.patch
+Patch059: nfs-utils-2.3.3-gssd-unconditionally-use-krb5_get_init_creds_opt_all.patch
+Patch060: nfs-utils-2.3.3-gssd-do-not-use-krb5_cc_initialize.patch
+Patch061: nfs-utils-2.3.3-nfsiostat-fixes.patch
+Patch062: nfs-utils-2.3.3-mountstats-fixes.patch
+Patch063: nfs-utils-2.3.3-nfs-man-rdirplus.patch
 
 Patch100: nfs-utils-1.2.1-statdpath-man.patch
 Patch101: nfs-utils-1.2.1-exp-subtree-warn-off.patch
@@ -386,6 +396,22 @@ fi
 %{_libdir}/libnfsidmap.so
 
 %changelog
+* Tue May 20 2025 Scott Mayhew <smayhew@redhat.com> 2.3.3-64
+- update rdirplus documentation on nfs(5) man page (RHEL-91253)
+
+* Fri May  9 2025 Scott Mayhew <smayhew@redhat.com> 2.3.3-63
+- mountstats fixes (RHEL-90242)
+
+* Thu May  8 2025 Scott Mayhew <smayhew@redhat.com> 2.3.3-62
+- nfsiostat fixes (RHEL-90242)
+
+* Mon Apr 28 2025 Scott Mayhew <smayhew@redhat.com> 2.3.3-61
+- gssd: unconditionally use krb5_get_init_creds_opt_alloc (RHEL-62422)
+- gssd: do not use krb5_cc_initialize (RHEL-62422)
+
+* Tue Apr 15 2025 Scott Mayhew <smayhew@redhat.com> 2.3.3-60
+- gssd.man: add documentation for use-gss-proxy (RHEL-13085)
+
 * Thu Jan 12 2023 Steve Dickson <steved@redhat.com> 2.3.3-59
 - Covscan Scan: Wrong Check of Return Value (bz 2151966)
 - Covscan Scan: Clang (experimental) (bz 2151971)
