@@ -1,0 +1,58 @@
+commit 968f7b646ff70ff1d4669138c617ae5f1591e9b6
+Author: Steve Dickson <steved@redhat.com>
+Date:   Sat Jan 11 04:51:33 2025 -0500
+
+    nfsdcltrack related manpage and configure file cleanup
+    
+    Reported-by: Yongcheng Yang <yoyang@redhat.com>
+    Reviewed-by: Jeff Layton <jlayton@kernel.org>
+    Fixes: https://issues.redhat.com/browse/RHEL-73500
+    Signed-off-by: Steve Dickson <steved@redhat.com>
+
+diff --git a/nfs.conf b/nfs.conf
+index 087d7372..3cca68c3 100644
+--- a/nfs.conf
++++ b/nfs.conf
+@@ -60,10 +60,6 @@
+ # debug=0
+ # storagedir=/var/lib/nfs/nfsdcld
+ #
+-[nfsdcltrack]
+-# debug=0
+-# storagedir=/var/lib/nfs/nfsdcltrack
+-#
+ [nfsd]
+ # debug=0
+ # threads=16
+diff --git a/systemd/nfs.conf.man b/systemd/nfs.conf.man
+index d03fc887..e6a84a97 100644
+--- a/systemd/nfs.conf.man
++++ b/systemd/nfs.conf.man
+@@ -158,19 +158,6 @@ is equivalent to providing the
+ .B \-\-log\-auth
+ option.
+ 
+-.TP
+-.B nfsdcltrack
+-Recognized values:
+-.BR storagedir .
+-
+-The
+-.B nfsdcltrack
+-program is run directly by the Linux kernel and there is no
+-opportunity to provide command line arguments, so the configuration
+-file is the only way to configure this program.  See
+-.BR nfsdcltrack (8)
+-for details.
+-
+ .TP
+ .B nfsd
+ Recognized values:
+@@ -329,7 +316,6 @@ for deatils.
+ Various configuration files read in order.  Later settings override
+ earlier settings.
+ .SH SEE ALSO
+-.BR nfsdcltrack (8),
+ .BR rpc.nfsd (8),
+ .BR rpc.mountd (8),
+ .BR nfsmount.conf (5).
