@@ -2,7 +2,7 @@ Summary: NFS utilities and supporting clients and daemons for the kernel NFS ser
 Name: nfs-utils
 URL: http://linux-nfs.org/
 Version: 2.5.4
-Release: 34%{?dist}
+Release: 38%{?dist}
 Epoch: 1
 
 # group all 32bit related archs
@@ -73,7 +73,15 @@ Patch029: nfs-utils-2.5.4-mount-writable.patch
 Patch030: nfs-utils-2.5.4-mount-v3-retry.patch
 Patch031: nfs-utils-2.5.4-conffile-argument.patch
 Patch032: nfs-utils-2.5.4-fix-nfsdcld-starting-too-early.patch
-Patch033: nfs-utils-2.5.4-nfsiostat-fixes.patch
+
+#
+# RHEL9.7
+#
+Patch033: nfs-utils-2.5.4-rdirplus-man.patch
+Patch034: nfs-utils-2.5.4-nfsd-64conns.patch
+Patch035: nfs-utils-2.5.4-nfsiostat-fixes.patch
+Patch036: nfs-utils-2.5.4-gssd-man-gssproxy.patch
+Patch037: nfs-utils-2.5.4-gssd-dup-cachecreds.patch
 
 Patch100: nfs-utils-1.2.1-statdpath-man.patch
 Patch101: nfs-utils-1.2.1-exp-subtree-warn-off.patch
@@ -330,6 +338,11 @@ fi
 if [ $1 -eq 0 ]; then
 	%systemd_preun nfs-client.target
 	%systemd_preun nfs-server.service
+	%systemd_preun auth-rpcgss-module.service
+	%systemd_preun nfs-blkmap.service
+	%systemd_preun rpc-gssd.service
+	%systemd_preun rpc-statd-notify.service
+	%systemd_preun var-lib-nfs-rpc_pipefs.mount
 fi
 
 %preun -n nfsv4-client-utils
@@ -515,6 +528,20 @@ fi
 %{_mandir}/*/nfsiostat.8.gz
 
 %changelog
+* Thu Jun 12 2025 Scott Mayhew <smayhew@redhat.com> 2.5.4-38
+- ensure services are stopped when nfs-utils is uninstalled (RHEL-88422)
+
+* Sat Apr 26 2025 Steve Dickson <steved@redhat.com> 2.5.4-37
+- gssd.man: add documentation for use-gss-proxy nfs.conf option (RHEL-85408)
+- gssd: do not use krb5_cc_initialize (RHEL-85412)
+
+* Fri Apr 25 2025 Steve Dickson <steved@redhat.com> 2.5.4-36
+- mountstats: verify that old and new types are the same (RHEL-88553)
+
+* Tue Apr 22 2025 Steve Dickson <steved@redhat.com> 2.5.4-35
+- nfs(5): Add new rdirplus functionality, clarify (RHEL-87143)
+- nfsd: allow more than 64 backlogged connections (RHEL-87752)
+
 * Sun Feb 16 2025 Steve Dickson <steved@redhat.com> 2.5.4-34
 - mountstats/nfsiostat: bugfixes for iostat (RHEL-72243)
 

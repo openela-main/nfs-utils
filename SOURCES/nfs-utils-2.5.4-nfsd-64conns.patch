@@ -1,0 +1,34 @@
+commit 0470fd526cb15ace1241f8c60fb98fedef74307b
+Author: Trond Myklebust <trond.myklebust@hammerspace.com>
+Date:   Fri May 10 09:09:28 2024 -0400
+
+    nfsd: allow more than 64 backlogged connections
+    
+    When creating a listener socket to be handed to /proc/fs/nfsd/portlist,
+    we currently limit the number of backlogged connections to 64. Since
+    that value was chosen in 2006, the scale at which data centres operate
+    has changed significantly. Given a modern server with many thousands of
+    clients, a limit of 64 connections can create bottlenecks, particularly
+    at at boot time.
+    Let's use the POSIX-sanctioned maximum value of SOMAXCONN.
+    
+    Reviewed-by: Jeff Layton <jlayton@kernel.org>
+    Acked-by: Chuck Lever <chuck.lever@oracle.com>
+    Tested-by: Chen Hanxiao <chenhx.fnst@fujitsu.com>
+    Signed-off-by: Trond Myklebust <trond.myklebust@hammerspace.com>
+    Signed-off-by: Steve Dickson <steved@redhat.com>
+
+diff --git a/utils/nfsd/nfssvc.c b/utils/nfsd/nfssvc.c
+index 46452d97..9650cece 100644
+--- a/utils/nfsd/nfssvc.c
++++ b/utils/nfsd/nfssvc.c
+@@ -205,7 +205,8 @@ nfssvc_setfds(const struct addrinfo *hints, const char *node, const char *port)
+ 			rc = errno;
+ 			goto error;
+ 		}
+-		if (addr->ai_protocol == IPPROTO_TCP && listen(sockfd, 64)) {
++		if (addr->ai_protocol == IPPROTO_TCP &&
++		    listen(sockfd, SOMAXCONN)) {
+ 			xlog(L_ERROR, "unable to create listening socket: "
+ 				"errno %d (%m)", errno);
+ 			rc = errno;
