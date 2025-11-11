@@ -1,0 +1,27 @@
+From ff2077d10ad11ad7422d1bb22f5761da6610ca38 Mon Sep 17 00:00:00 2001
+From: zhangyaqi <zhangyaqi@kylinos.cn>
+Date: Tue, 6 May 2025 11:53:59 -0400
+Subject: [nfs-utils PATCH 8/9] gssd:fix the possible buffer overflow in
+ get_full_hostname
+
+Signed-off-by: zhangyaqi <zhangyaqi@kylinos.cn>
+Signed-off-by: Steve Dickson <steved@redhat.com>
+---
+ utils/gssd/krb5_util.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/utils/gssd/krb5_util.c b/utils/gssd/krb5_util.c
+index 560e8be1..09625fb9 100644
+--- a/utils/gssd/krb5_util.c
++++ b/utils/gssd/krb5_util.c
+@@ -619,6 +619,7 @@ get_full_hostname(const char *inhost, char *outhost, int outhostlen)
+ 		goto out;
+ 	}
+ 	strncpy(outhost, addrs->ai_canonname, outhostlen);
++	outhost[outhostlen - 1] = '\0';
+ 	nfs_freeaddrinfo(addrs);
+ 	for (c = outhost; *c != '\0'; c++)
+ 	    *c = tolower(*c);
+-- 
+2.48.1
+

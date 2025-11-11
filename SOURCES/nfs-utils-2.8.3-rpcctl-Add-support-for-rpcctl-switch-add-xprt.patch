@@ -1,0 +1,69 @@
+From 94a12a1bdabe7acb86bc610c079945ffca01e036 Mon Sep 17 00:00:00 2001
+From: Anna Schumaker <anna.schumaker@oracle.com>
+Date: Tue, 6 May 2025 10:24:52 -0400
+Subject: [nfs-utils PATCH 4/9] rpcctl: Add support for `rpcctl switch
+ add-xprt`
+
+This is used to add an xprt to the switch at runtime.
+
+Signed-off-by: Anna Schumaker <anna.schumaker@oracle.com>
+Signed-off-by: Steve Dickson <steved@redhat.com>
+---
+ tools/rpcctl/rpcctl.man |  4 ++++
+ tools/rpcctl/rpcctl.py  | 11 +++++++++++
+ 2 files changed, 15 insertions(+)
+
+diff --git a/tools/rpcctl/rpcctl.man b/tools/rpcctl/rpcctl.man
+index b87ba0df..2ee168c8 100644
+--- a/tools/rpcctl/rpcctl.man
++++ b/tools/rpcctl/rpcctl.man
+@@ -12,6 +12,7 @@ rpcctl \- Displays SunRPC connection information
+ .BR "rpcctl client show " "\fR[ \fB\-h \f| \fB\-\-help \fR] [ \fIXPRT \fR]"
+ .P
+ .BR "rpcctl switch" " \fR[ \fB\-h \fR| \fB\-\-help \fR] { \fBset \fR| \fBshow \fR}"
++.BR "rpcctl switch add-xprt" " \fR[ \fB\-h \fR| \fB\-\-help \fR] [ \fISWITCH \fR]"
+ .BR "rpcctl switch set" " \fR[ \fB\-h \fR| \fB\-\-help \fR] \fISWITCH \fBdstaddr \fINEWADDR"
+ .BR "rpcctl switch show" " \fR[ \fB\-h \fR| \fB\-\-help \fR] [ \fISWITCH \fR]"
+ .P
+@@ -29,6 +30,9 @@ Show detailed information about the RPC clients on this system.
+ If \fICLIENT \fRwas provided, then only show information about a single RPC client.
+ .P
+ .SS rpcctl switch \fR- \fBCommands operating on groups of transports
++.IP "\fBadd-xprt \fISWITCH"
++Add an aditional transport to the \fISWITCH\fR.
++Note that the new transport will take its values from the "main" transport.
+ .IP "\fBset \fISWITCH \fBdstaddr \fINEWADDR"
+ Change the destination address of all transports in the \fISWITCH \fRto \fINEWADDR\fR.
+ \fINEWADDR \fRcan be an IP address, DNS name, or anything else resolvable by \fBgethostbyname\fR(3).
+diff --git a/tools/rpcctl/rpcctl.py b/tools/rpcctl/rpcctl.py
+index 130f245a..29ae7d26 100755
+--- a/tools/rpcctl/rpcctl.py
++++ b/tools/rpcctl/rpcctl.py
+@@ -213,6 +213,12 @@ class XprtSwitch:
+         parser.set_defaults(func=XprtSwitch.show, switch=None)
+         subparser = parser.add_subparsers()
+ 
++        add = subparser.add_parser("add-xprt",
++                                   help="Add an xprt to the switch")
++        add.add_argument("switch", metavar="SWITCH", nargs=1,
++                         help="Name of a specific xprt switch to modify")
++        add.set_defaults(func=XprtSwitch.add_xprt)
++
+         show = subparser.add_parser("show", help="Show xprt switches")
+         show.add_argument("switch", metavar="SWITCH", nargs='?',
+                           help="Name of a specific switch to show")
+@@ -236,6 +242,11 @@ class XprtSwitch:
+             return [XprtSwitch(xprt_switches / name)]
+         return [XprtSwitch(f) for f in sorted(xprt_switches.iterdir())]
+ 
++    def add_xprt(args):
++        """Handle the `rpcctl switch add-xprt` command."""
++        for switch in XprtSwitch.get_by_name(args.switch[0]):
++            write_sysfs_file(switch.path / "add_xprt", "1")
++
+     def show(args):
+         """Handle the `rpcctl switch show` command."""
+         for switch in XprtSwitch.get_by_name(args.switch):
+-- 
+2.48.1
+

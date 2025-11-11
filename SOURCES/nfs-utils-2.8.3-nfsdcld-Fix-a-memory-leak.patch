@@ -1,0 +1,26 @@
+From 211280c0e7d2d11e12124cd64e4e6d169b2f2b88 Mon Sep 17 00:00:00 2001
+From: zhangyaqi <zhangyaqi@kylinos.cn>
+Date: Tue, 6 May 2025 11:23:35 -0400
+Subject: [nfs-utils PATCH 7/9] nfsdcld:Fix a memory leak
+
+Signed-off-by: zhangyaqi <zhangyaqi@kylinos.cn>
+Signed-off-by: Steve Dickson <steved@redhat.com>
+---
+ utils/nfsdcld/nfsdcld.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/utils/nfsdcld/nfsdcld.c b/utils/nfsdcld/nfsdcld.c
+index f7737d92..8551dc97 100644
+--- a/utils/nfsdcld/nfsdcld.c
++++ b/utils/nfsdcld/nfsdcld.c
+@@ -822,6 +822,7 @@ main(int argc, char **argv)
+ 	evbase = event_base_new();
+ 	if (evbase == NULL) {
+ 		fprintf(stderr, "%s: unable to allocate event base.\n", argv[0]);
++		free(progname);
+ 		return 1;
+ 	}
+ 	xlog_syslog(0);
+-- 
+2.48.1
+

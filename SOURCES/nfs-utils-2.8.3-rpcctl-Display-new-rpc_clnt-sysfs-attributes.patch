@@ -1,0 +1,70 @@
+From 6ac06428e7fdedde90eefe446ae88a42714dc974 Mon Sep 17 00:00:00 2001
+From: Anna Schumaker <anna.schumaker@oracle.com>
+Date: Tue, 6 May 2025 10:21:42 -0400
+Subject: [nfs-utils PATCH 3/9] rpcctl: Display new rpc_clnt sysfs attributes
+
+This includes the rpc program name, rpc version, and maximum number of
+connections.
+
+Signed-off-by: Anna Schumaker <anna.schumaker@oracle.com>
+Signed-off-by: Steve Dickson <steved@redhat.com>
+---
+ tools/rpcctl/rpcctl.py | 15 ++++++++++-----
+ 1 file changed, 10 insertions(+), 5 deletions(-)
+
+diff --git a/tools/rpcctl/rpcctl.py b/tools/rpcctl/rpcctl.py
+index ce22e424..130f245a 100755
+--- a/tools/rpcctl/rpcctl.py
++++ b/tools/rpcctl/rpcctl.py
+@@ -185,14 +185,13 @@ class Xprt:
+ class XprtSwitch:
+     """Represents a group of xprt connections."""
+ 
+-    def __init__(self, path, sep=":"):
++    def __init__(self, path):
+         """Read in xprt switch information from sysfs."""
+         self.path = path
+         self.name = path.stem
+         self.info = read_info_file(path / "xprt_switch_info")
+         self.xprts = sorted([Xprt(p) for p in self.path.iterdir()
+                              if p.is_dir()])
+-        self.sep = sep
+ 
+     def __lt__(self, rhs):
+         """Compare the name of two xprt switch instances."""
+@@ -200,7 +199,7 @@ class XprtSwitch:
+ 
+     def __str__(self):
+         """Return a string representation of an xprt switch."""
+-        switch = f"{self.name}{self.sep} " \
++        switch = f"{self.name}: " \
+                  f"xprts {self.info['num_xprts']}, " \
+                  f"active {self.info['num_active']}, " \
+                  f"queue {self.info['queue_len']}"
+@@ -258,7 +257,11 @@ class RpcClient:
+         """Read in rpc client information from sysfs."""
+         self.path = path
+         self.name = path.stem
+-        self.switch = XprtSwitch(path / (path / "switch").readlink(), sep=",")
++        self.switch = XprtSwitch(path / (path / "switch").readlink())
++        self.program = read_sysfs_file(path / "program", missing="unknown")
++        self.version = read_sysfs_file(path / "rpc_version", missing="unknown")
++        self.max_connect = read_sysfs_file(path / "max_connect",
++                                           missing="unknown")
+ 
+     def __lt__(self, rhs):
+         """Compare the name of two rpc client instances."""
+@@ -266,7 +269,9 @@ class RpcClient:
+ 
+     def __str__(self):
+         """Return a string representation of an rpc client."""
+-        return f"{self.name}: {self.switch}"
++        return f"{self.name}: {self.program}, rpc version {self.version}, " \
++               f"max_connect {self.max_connect}" \
++               f"\n  {' ' * len(self.name)}{self.switch}"
+ 
+     def add_command(subparser):
+         """Add parser options for the `rpcctl client` command."""
+-- 
+2.48.1
+

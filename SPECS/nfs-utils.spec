@@ -1,8 +1,8 @@
 Summary: NFS utilities and supporting clients and daemons for the kernel NFS server
 Name: nfs-utils
 URL: http://linux-nfs.org/
-Version: 2.8.2
-Release: 3%{?dist}
+Version: 2.8.3
+Release: 0%{?dist}
 Epoch: 1
 
 # group all 32bit related archs
@@ -15,10 +15,17 @@ Source3: 24-nfs-server.conf
 Source4: 10-nfsv4.conf
 
 #
-# RHEL10.0
+# RHEL 10.1
 #
-Patch001: nfs-utils-2.8.2-nfsdcltrack-cleanup.patch
-Patch002: nfs-utils-2.8.2-nfsdctl-nfsd-version-handling-fixes.patch
+Patch001: nfs-utils-2.8.3-rpcctl-Rename-read-write-_addr_file.patch
+Patch002: nfs-utils-2.8.3-rpcctl-Add-support-for-the-xprtsec-sysfs-attribute.patch
+Patch003: nfs-utils-2.8.3-rpcctl-Display-new-rpc_clnt-sysfs-attributes.patch
+Patch004: nfs-utils-2.8.3-rpcctl-Add-support-for-rpcctl-switch-add-xprt.patch
+Patch005: nfs-utils-2.8.3-nfsdctl-debug-logging-fixups.patch
+Patch006: nfs-utils-2.8.3-nfsdctl-fix-lockd-config-during-autostart.patch
+Patch007: nfs-utils-2.8.3-nfsdcld-Fix-a-memory-leak.patch
+Patch008: nfs-utils-2.8.3-gssd-fix-the-possible-buffer-overflow-in-get_full_ho.patch
+Patch009: nfs-utils-2.8.3-nfsdctl-Warning-Clean-Up.patch
 
 Patch100: nfs-utils-1.2.1-statdpath-man.patch
 Patch102: nfs-utils-1.2.5-idmap-errmsg.patch
@@ -433,6 +440,15 @@ rm -rf /etc/systemd/system/rpc-*.requires
 %{_mandir}/*/nfsiostat.8.gz
 
 %changelog
+* Tue Apr 29 2025 Scott Mayhew <smayhew@redhat.com> 2.8.3-0
+- Updated to nfs-utils-2-8-3 plus additional fixes from 2-8-4-rc1 (RHEL-88768)
+  Resolves: RHEL-71286
+  Resolves: RHEL-82418
+  Resolves: RHEL-82557
+  Resolves: RHEL-85409
+  Resolves: RHEL-85413
+  Resolves: RHEL-88768
+
 * Wed Feb  5 2025 Scott Mayhew <smayhew@redhat.com> 2.8.2-3
 - fix ownership of /var/lib/nfs/statd/state (RHEL-77913)
 - /var/lib/nfs/{etab,rmtab} should not be marked as config files (RHEL-77912)

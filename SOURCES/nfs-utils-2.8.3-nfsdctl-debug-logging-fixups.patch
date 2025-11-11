@@ -1,0 +1,61 @@
+From 6d1cdc66aa7a749535999b812b2a7f18594b2176 Mon Sep 17 00:00:00 2001
+From: Scott Mayhew <smayhew@redhat.com>
+Date: Tue, 6 May 2025 10:50:26 -0400
+Subject: [nfs-utils PATCH 5/9] nfsdctl: debug logging fixups
+
+Move read_nfsd_conf() out of autostart_func() and into main() so we
+don't lose any messages.  Remove hard-coded NFSD_FAMILY_NAME in the
+first error message in netlink_msg_alloc() so the error message has the
+correct family and make both error messages in netlink_msg_alloc()
+more descriptive/unique.
+
+Reviewed-by: Jeff Layton <jlayton@kernel.org>
+Signed-off-by: Scott Mayhew <smayhew@redhat.com>
+Signed-off-by: Steve Dickson <steved@redhat.com>
+---
+ utils/nfsdctl/nfsdctl.c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/utils/nfsdctl/nfsdctl.c b/utils/nfsdctl/nfsdctl.c
+index 733756a9..1fdbb44d 100644
+--- a/utils/nfsdctl/nfsdctl.c
++++ b/utils/nfsdctl/nfsdctl.c
+@@ -436,7 +436,7 @@ static struct nl_msg *netlink_msg_alloc(struct nl_sock *sock, const char *family
+ 
+ 	id = genl_ctrl_resolve(sock, family);
+ 	if (id < 0) {
+-		xlog(L_ERROR, "%s not found", NFSD_FAMILY_NAME);
++		xlog(L_ERROR, "failed to resolve %s generic netlink family", family);
+ 		return NULL;
+ 	}
+ 
+@@ -447,7 +447,7 @@ static struct nl_msg *netlink_msg_alloc(struct nl_sock *sock, const char *family
+ 	}
+ 
+ 	if (!genlmsg_put(msg, 0, 0, id, 0, 0, 0, 0)) {
+-		xlog(L_ERROR, "failed to allocate netlink message");
++		xlog(L_ERROR, "failed to add generic netlink headers to netlink message");
+ 		nlmsg_free(msg);
+ 		return NULL;
+ 	}
+@@ -1592,8 +1592,6 @@ static int autostart_func(struct nl_sock *sock, int argc, char ** argv)
+ 		}
+ 	}
+ 
+-	read_nfsd_conf();
+-
+ 	grace = conf_get_num("nfsd", "grace-time", 0);
+ 	ret = lockd_configure(sock, grace);
+ 	if (ret) {
+@@ -1824,6 +1822,8 @@ int main(int argc, char **argv)
+ 	xlog_syslog(0);
+ 	xlog_stderr(1);
+ 
++	read_nfsd_conf();
++
+ 	/* Parse the preliminary options */
+ 	while ((opt = getopt_long(argc, argv, "+hdsV", pre_options, NULL)) != -1) {
+ 		switch (opt) {
+-- 
+2.48.1
+

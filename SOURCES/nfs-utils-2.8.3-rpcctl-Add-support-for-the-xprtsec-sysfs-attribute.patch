@@ -1,0 +1,57 @@
+From c2859c0738b2ba426ee7bec61a8a72a517483f09 Mon Sep 17 00:00:00 2001
+From: Anna Schumaker <anna.schumaker@oracle.com>
+Date: Tue, 6 May 2025 10:17:36 -0400
+Subject: [nfs-utils PATCH 2/9] rpcctl: Add support for the xprtsec sysfs
+ attribute
+
+This was recently added to the Linux kernel, so running rpcctl on
+kernels that don't have this attribute will print out "unknown" in its
+place instead.
+
+Signed-off-by: Anna Schumaker <anna.schumaker@oracle.com>
+Signed-off-by: Steve Dickson <steved@redhat.com>
+---
+ tools/rpcctl/rpcctl.py | 8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
+
+diff --git a/tools/rpcctl/rpcctl.py b/tools/rpcctl/rpcctl.py
+index 654b2f60..ce22e424 100755
+--- a/tools/rpcctl/rpcctl.py
++++ b/tools/rpcctl/rpcctl.py
+@@ -20,13 +20,13 @@ if not sunrpc.is_dir():
+     sys.exit(1)
+ 
+ 
+-def read_sysfs_file(path):
++def read_sysfs_file(path, *, missing="enoent"):
+     """Read a sysfs file."""
+     try:
+         with open(path, 'r') as f:
+             return f.readline().strip()
+     except FileNotFoundError:
+-        return "(enoent)"
++        return f"({missing})"
+ 
+ 
+ def write_sysfs_file(path, input):
+@@ -58,6 +58,7 @@ class Xprt:
+         self.info = read_info_file(path / "xprt_info")
+         self.dstaddr = read_sysfs_file(path / "dstaddr")
+         self.srcaddr = read_sysfs_file(path / "srcaddr")
++        self.xprtsec = read_sysfs_file(path / "xprtsec", missing="unknown")
+         self.read_state()
+ 
+     def __lt__(self, rhs):
+@@ -67,7 +68,8 @@ class Xprt:
+     def _xprt(self):
+         main = ", main" if self.info.get("main_xprt") else ""
+         return f"{self.name}: {self.type}, {self.dstaddr}, " \
+-               f"port {self.info['dst_port']}, state <{self.state}>{main}"
++               f"port {self.info['dst_port']}, sec {self.xprtsec}, " \
++               f"state <{self.state}>{main}"
+ 
+     def _src_reqs(self):
+         return f"	Source: {self.srcaddr}, port {self.info['src_port']}, " \
+-- 
+2.48.1
+

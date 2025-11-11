@@ -1,0 +1,43 @@
+From 2cf015ea4312f37598efe9733fef3232ab67f784 Mon Sep 17 00:00:00 2001
+From: Steve Dickson <steved@redhat.com>
+Date: Wed, 7 May 2025 07:42:04 -0400
+Subject: [nfs-utils PATCH 9/9] nfsdctl: Warning Clean Up
+
+Removed a number of unused variables
+
+Initialized a variable that could be used
+before initialized
+
+Signed-off-by: Steve Dickson <steved@redhat.com>
+---
+ utils/nfsdctl/nfsdctl.c | 7 ++-----
+ 1 file changed, 2 insertions(+), 5 deletions(-)
+
+diff --git a/utils/nfsdctl/nfsdctl.c b/utils/nfsdctl/nfsdctl.c
+index c2e34260..e7a0e124 100644
+--- a/utils/nfsdctl/nfsdctl.c
++++ b/utils/nfsdctl/nfsdctl.c
+@@ -1521,7 +1521,7 @@ static int configure_versions(void)
+ 
+ static int configure_listeners(void)
+ {
+-	char *port, *rdma_port;
++	char *port, *rdma_port = NULL;
+ 	bool rdma, udp, tcp;
+ 	struct conf_list *hosts;
+ 	int ret = 0;
+@@ -1675,10 +1675,7 @@ static void nlm_usage(void)
+ 
+ static int nlm_func(struct nl_sock *sock, int argc, char ** argv)
+ {
+-	int *threads, grace, lease, idx, ret, opt, pools;
+-	struct conf_list *thread_str;
+-	struct conf_list_node *n;
+-	char *scope, *pool_mode;
++	int opt;
+ 
+ 	optind = 1;
+ 	while ((opt = getopt_long(argc, argv, "h", help_only_options, NULL)) != -1) {
+-- 
+2.48.1
+

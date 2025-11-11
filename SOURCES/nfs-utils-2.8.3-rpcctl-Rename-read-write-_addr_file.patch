@@ -1,0 +1,68 @@
+From c33753ce86a5f385fdb88c4d29530359b12f72c1 Mon Sep 17 00:00:00 2001
+From: Anna Schumaker <anna.schumaker@oracle.com>
+Date: Tue, 6 May 2025 10:15:45 -0400
+Subject: [nfs-utils PATCH 1/9] rpcctl: Rename {read,write}_addr_file()
+
+There is nothing address specific about these functions, so name them
+something more generic so they can be reused.
+
+Signed-off-by: Anna Schumaker <anna.schumaker@oracle.com>
+Signed-off-by: Steve Dickson <steved@redhat.com>
+---
+ tools/rpcctl/rpcctl.py | 18 +++++++++---------
+ 1 file changed, 9 insertions(+), 9 deletions(-)
+
+diff --git a/tools/rpcctl/rpcctl.py b/tools/rpcctl/rpcctl.py
+index 0221fbb6..654b2f60 100755
+--- a/tools/rpcctl/rpcctl.py
++++ b/tools/rpcctl/rpcctl.py
+@@ -20,8 +20,8 @@ if not sunrpc.is_dir():
+     sys.exit(1)
+ 
+ 
+-def read_addr_file(path):
+-    """Read an xprt address file."""
++def read_sysfs_file(path):
++    """Read a sysfs file."""
+     try:
+         with open(path, 'r') as f:
+             return f.readline().strip()
+@@ -29,11 +29,11 @@ def read_addr_file(path):
+         return "(enoent)"
+ 
+ 
+-def write_addr_file(path, newaddr):
+-    """Write a new address to an xprt address file."""
++def write_sysfs_file(path, input):
++    """Write 'input' to a sysfs file."""
+     with open(path, 'w') as f:
+-        f.write(newaddr)
+-    return read_addr_file(path)
++        f.write(input)
++    return read_sysfs_file(path)
+ 
+ 
+ def read_info_file(path):
+@@ -56,8 +56,8 @@ class Xprt:
+         self.name = path.stem.rsplit("-", 1)[0]
+         self.type = path.stem.split("-")[2]
+         self.info = read_info_file(path / "xprt_info")
+-        self.dstaddr = read_addr_file(path / "dstaddr")
+-        self.srcaddr = read_addr_file(path / "srcaddr")
++        self.dstaddr = read_sysfs_file(path / "dstaddr")
++        self.srcaddr = read_sysfs_file(path / "srcaddr")
+         self.read_state()
+ 
+     def __lt__(self, rhs):
+@@ -106,7 +106,7 @@ class Xprt:
+ 
+     def set_dstaddr(self, newaddr):
+         """Change the dstaddr of an xprt."""
+-        self.dstaddr = write_addr_file(self.path / "dstaddr", newaddr)
++        self.dstaddr = write_sysfs_file(self.path / "dstaddr", newaddr)
+ 
+     def set_state(self, state):
+         """Change the state of an xprt."""
+-- 
+2.48.1
+
