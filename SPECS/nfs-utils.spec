@@ -2,7 +2,7 @@ Summary: NFS utilities and supporting clients and daemons for the kernel NFS ser
 Name: nfs-utils
 URL: http://linux-nfs.org/
 Version: 2.8.3
-Release: 0%{?dist}
+Release: 0%{?dist}.3
 Epoch: 1
 
 # group all 32bit related archs
@@ -26,6 +26,14 @@ Patch006: nfs-utils-2.8.3-nfsdctl-fix-lockd-config-during-autostart.patch
 Patch007: nfs-utils-2.8.3-nfsdcld-Fix-a-memory-leak.patch
 Patch008: nfs-utils-2.8.3-gssd-fix-the-possible-buffer-overflow-in-get_full_ho.patch
 Patch009: nfs-utils-2.8.3-nfsdctl-Warning-Clean-Up.patch
+
+#
+# RHEL 10.1.z
+#
+Patch010: nfs-utils-2.8.3-mountd-Minor-refactor-of-get_rootfh.patch
+Patch011: nfs-utils-2.8.3-mountd-Separate-lookup-of-the-exported-directory-and.patch
+Patch012: nfs-utils-2.8.3-support-Add-a-mini-library-to-extract-and-apply-RPC-.patch
+Patch013: nfs-utils-2.8.3-Fix-access-checks-when-mounting-subdirectories-in-NF.patch
 
 Patch100: nfs-utils-1.2.1-statdpath-man.patch
 Patch102: nfs-utils-1.2.5-idmap-errmsg.patch
@@ -71,6 +79,7 @@ Requires: libtirpc >= 0.2.3-1 libblkid libcap libmount
 Requires: gssproxy => 0.7.0-3
 Requires: rpcbind, sed, gawk, grep
 Requires: kmod, keyutils, quota
+Requires: (selinux-policy >= 42.1.7-1.el10_1.1 if selinux-policy)
 %{?systemd_requires}
 
 %package -n nfs-utils-coreos
@@ -440,6 +449,16 @@ rm -rf /etc/systemd/system/rpc-*.requires
 %{_mandir}/*/nfsiostat.8.gz
 
 %changelog
+* Wed Feb 18 2026 Scott Mayhew <smayhew@redhat.com> 2.8.3-3
+- Add requires for selinux-policy (RHEL-127092)
+
+* Fri Jan 16 2026 Scott Mayhew <smayhew@redhat.com> 2.8.3-2
+- mountd: Minor refactor of get_rootfh() (RHEL-127092)
+- mountd: Separate lookup of the exported directory and the mount path (RHEL-127092)
+- support: Add a mini-library to extract and apply RPC credentials (RHEL-127092)
+- Fix access checks when mounting subdirectories in NFSv3 (RHEL-127092)
+  Resolves: CVE-2025-12801
+
 * Tue Apr 29 2025 Scott Mayhew <smayhew@redhat.com> 2.8.3-0
 - Updated to nfs-utils-2-8-3 plus additional fixes from 2-8-4-rc1 (RHEL-88768)
   Resolves: RHEL-71286
