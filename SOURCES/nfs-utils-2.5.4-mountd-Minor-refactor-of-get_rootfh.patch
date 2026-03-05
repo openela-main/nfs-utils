@@ -1,0 +1,79 @@
+From 36af075e9dad40f6050bba78e771a55be88e66ac Mon Sep 17 00:00:00 2001
+From: Scott Mayhew <smayhew@redhat.com>
+Date: Tue, 6 Jan 2026 13:33:25 -0500
+Subject: [PATCH 3/6] mountd: Minor refactor of get_rootfh()
+
+JIRA: https://issues.redhat.com/browse/RHEL-127104
+
+Perform the mountpoint checks before checking the user path.
+
+Reviewed-by: Jeff Layton <jlayton@kernel.org>
+Signed-off-by: Trond Myklebust <trond.myklebust@hammerspace.com>
+Signed-off-by: Steve Dickson <steved@redhat.com>
+Signed-off-by: Scott Mayhew <smayhew@redhat.com>
+---
+ utils/mountd/mountd.c | 34 +++++++++++++++++-----------------
+ 1 file changed, 17 insertions(+), 17 deletions(-)
+
+diff --git a/utils/mountd/mountd.c b/utils/mountd/mountd.c
+index bcf749f..c0017b0 100644
+--- a/utils/mountd/mountd.c
++++ b/utils/mountd/mountd.c
+@@ -486,6 +486,23 @@ get_rootfh(struct svc_req *rqstp, dirpath *path, nfs_export **expret,
+ 		*error = MNT3ERR_ACCES;
+ 		return NULL;
+ 	}
++	if (nfsd_path_stat(exp->m_export.e_path, &estb) < 0) {
++		xlog(L_WARNING, "can't stat export point %s: %s",
++		     p, strerror(errno));
++		*error = MNT3ERR_NOENT;
++		return NULL;
++	}
++	if (exp->m_export.e_mountpoint &&
++		   !check_is_mountpoint(exp->m_export.e_mountpoint[0]?
++				  exp->m_export.e_mountpoint:
++				  exp->m_export.e_path,
++				  nfsd_path_lstat)) {
++		xlog(L_WARNING, "request to export an unmounted filesystem: %s",
++		     p);
++		*error = MNT3ERR_NOENT;
++		return NULL;
++	}
++
+ 	if (nfsd_path_stat(p, &stb) < 0) {
+ 		xlog(L_WARNING, "can't stat exported dir %s: %s",
+ 				p, strerror(errno));
+@@ -500,12 +517,6 @@ get_rootfh(struct svc_req *rqstp, dirpath *path, nfs_export **expret,
+ 		*error = MNT3ERR_NOTDIR;
+ 		return NULL;
+ 	}
+-	if (nfsd_path_stat(exp->m_export.e_path, &estb) < 0) {
+-		xlog(L_WARNING, "can't stat export point %s: %s",
+-		     p, strerror(errno));
+-		*error = MNT3ERR_NOENT;
+-		return NULL;
+-	}
+ 	if (estb.st_dev != stb.st_dev
+ 	    && !(exp->m_export.e_flags & NFSEXP_CROSSMOUNT)) {
+ 		xlog(L_WARNING, "request to export directory %s below nearest filesystem %s",
+@@ -513,17 +524,6 @@ get_rootfh(struct svc_req *rqstp, dirpath *path, nfs_export **expret,
+ 		*error = MNT3ERR_ACCES;
+ 		return NULL;
+ 	}
+-	if (exp->m_export.e_mountpoint &&
+-		   !check_is_mountpoint(exp->m_export.e_mountpoint[0]?
+-				  exp->m_export.e_mountpoint:
+-				  exp->m_export.e_path,
+-				  nfsd_path_lstat)) {
+-		xlog(L_WARNING, "request to export an unmounted filesystem: %s",
+-		     p);
+-		*error = MNT3ERR_NOENT;
+-		return NULL;
+-	}
+-
+ 	/* This will be a static private nfs_export with just one
+ 	 * address.  We feed it to kernel then extract the filehandle,
+ 	 */
+-- 
+2.52.0
+
