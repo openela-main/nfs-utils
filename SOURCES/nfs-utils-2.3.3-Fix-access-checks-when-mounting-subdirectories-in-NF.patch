@@ -1,0 +1,218 @@
+From a0dc9ad489b016ba2d84d21d4f1a1b40df5b548e Mon Sep 17 00:00:00 2001
+From: Scott Mayhew <smayhew@redhat.com>
+Date: Tue, 13 Jan 2026 14:30:22 -0500
+Subject: [PATCH 4/4] Fix access checks when mounting subdirectories in NFSv3
+
+If a NFSv3 client asks to mount a subdirectory of one of the exported
+directories, then apply the RPC credential together with any root
+or all squash rules that would apply to the client in question.
+---
+ nfs.conf                |  1 +
+ utils/mountd/mountd.c   | 93 ++++++++++++++++++++++++++++++++++++++++-
+ utils/mountd/mountd.man | 26 ++++++++++++
+ 3 files changed, 118 insertions(+), 2 deletions(-)
+
+diff --git a/nfs.conf b/nfs.conf
+index 30f9e109..f5a3bb7c 100644
+--- a/nfs.conf
++++ b/nfs.conf
+@@ -35,6 +35,7 @@ use-gss-proxy=1
+ #
+ [mountd]
+ # debug=0
++# apply-root-cred=n
+ # manage-gids=n
+ # descriptors=0
+ # port=0
+diff --git a/utils/mountd/mountd.c b/utils/mountd/mountd.c
+index 779f51b4..8e26bcb7 100644
+--- a/utils/mountd/mountd.c
++++ b/utils/mountd/mountd.c
+@@ -31,6 +31,7 @@
+ #include "pseudoflavors.h"
+ #include "nfslib.h"
+ #include "export.h"
++#include "nfs_ucred.h"
+ 
+ extern void my_svc_run(void);
+ 
+@@ -40,6 +41,7 @@ static struct nfs_fh_len *get_rootfh(struct svc_req *, dirpath *, nfs_export **,
+ 
+ int reverse_resolve = 0;
+ int manage_gids;
++int apply_root_cred;
+ int use_ipaddr = -1;
+ 
+ struct state_paths etab;
+@@ -77,9 +79,10 @@ static struct option longopts[] =
+ 	{ "log-auth", 0, 0, 'l'},
+ 	{ "cache-use-ipaddr", 0, 0, 'i'},
+ 	{ "ttl", 1, 0, 'T'},
++	{ "apply-root-cred", 0, 0, 'c' },
+ 	{ NULL, 0, 0, 0 }
+ };
+-static char shortopts[] = "o:nFd:p:P:hH:N:V:vurs:t:gliT:";
++static char shortopts[] = "o:nFd:p:P:hH:N:V:vurs:t:gliT:c";
+ 
+ #define NFSVERSBIT(vers)	(0x1 << (vers - 1))
+ #define NFSVERSBIT_ALL		(NFSVERSBIT(2) | NFSVERSBIT(3) | NFSVERSBIT(4))
+@@ -458,6 +461,71 @@ mount_mnt_3_svc(struct svc_req *rqstp, dirpath *path, mountres3 *res)
+ 	return 1;
+ }
+ 
++/*
++ * NB: In the upstream code, all the nfsd_cred_openat() stuff is located
++ * nfsd_path.c, which doesn't existing in RHEL8, so I'm including it here.
++ * Also, these functions differ slightly from the upstream versions because
++ * RHEL8 lacks the workqueue mechanism, which was added to support chrooted
++ * threads (i.e. the rootdir option).
++ */
++struct nfsd_openat_t {
++	const struct nfs_ucred *cred;
++	const char *path;
++	int dirfd;
++	int flags;
++	int res_fd;
++	int res_error;
++};
++
++static void nfsd_openatfunc(void *data)
++{
++	struct nfsd_openat_t *d = data;
++
++	d->res_fd = openat(d->dirfd, d->path, d->flags);
++	if (d->res_fd == -1)
++		d->res_error = errno;
++}
++
++static void nfsd_cred_openatfunc(void *data)
++{
++	struct nfsd_openat_t *d = data;
++	struct nfs_ucred *saved = NULL;
++	int ret;
++
++	ret = nfs_ucred_swap_effective(d->cred, &saved);
++	if (ret != 0) {
++		d->res_fd = -1;
++		d->res_error = ret;
++		return;
++	}
++
++	nfsd_openatfunc(data);
++
++	if (saved != NULL) {
++		nfs_ucred_swap_effective(saved, NULL);
++		nfs_ucred_free(saved);
++	}
++}
++
++static int nfsd_cred_openat(const struct nfs_ucred *cred, int dirfd, const char *path,
++		     int flags)
++{
++	struct nfsd_openat_t open_buf = {
++		.cred = cred,
++		.path = path,
++		.dirfd = dirfd,
++		.flags = flags,
++	};
++
++	if (cred)
++		nfsd_cred_openatfunc(&open_buf);
++	else
++		nfsd_openatfunc(&open_buf);
++	if (open_buf.res_fd == -1)
++		errno = open_buf.res_error;
++	return open_buf.res_fd;
++}
++
+ static struct nfs_fh_len *
+ get_rootfh(struct svc_req *rqstp, dirpath *path, nfs_export **expret,
+ 		mountstat3 *error, int v3)
+@@ -527,11 +595,27 @@ get_rootfh(struct svc_req *rqstp, dirpath *path, nfs_export **expret,
+ 	while (*subpath == '/')
+ 		subpath++;
+ 	if (*subpath != '\0') {
++		struct nfs_ucred *cred = NULL;
+ 		int fd;
+ 
++		/* Load the user cred */
++		if (!apply_root_cred) {
++			nfs_ucred_get(&cred, rqstp, &exp->m_export);
++			if (cred == NULL) {
++				xlog(L_WARNING, "can't retrieve credential");
++				*error = MNT3ERR_ACCES;
++				close(dirfd);
++				return NULL;
++			}
++			if (manage_gids)
++				nfs_ucred_reload_groups(cred, &exp->m_export);
++		}
++
+ 		/* Just perform a lookup of the path */
+-		fd = openat(dirfd, subpath, O_PATH);
++		fd = nfsd_cred_openat(cred, dirfd, subpath, O_PATH);
+ 		close(dirfd);
++		if (cred)
++			nfs_ucred_free(cred);
+ 		if (fd == -1) {
+ 			xlog(L_WARNING, "can't open exported dir %s: %s", p,
+ 			     strerror(errno));
+@@ -764,6 +848,8 @@ main(int argc, char **argv)
+ 	ttl = conf_get_num("mountd", "ttl", default_ttl);
+ 	if (ttl > 0)
+ 		default_ttl = ttl;
++	apply_root_cred = conf_get_bool("mountd", "apply-root-cred",
++					apply_root_cred);
+ 
+ 	/* Parse the command line options and arguments. */
+ 	opterr = 0;
+@@ -772,6 +858,9 @@ main(int argc, char **argv)
+ 		case 'g':
+ 			manage_gids = 1;
+ 			break;
++		case 'c':
++			apply_root_cred = 1;
++			break;
+ 		case 'o':
+ 			descriptors = atoi(optarg);
+ 			if (descriptors <= 0) {
+diff --git a/utils/mountd/mountd.man b/utils/mountd/mountd.man
+index 2a91e193..ac6d6d30 100644
+--- a/utils/mountd/mountd.man
++++ b/utils/mountd/mountd.man
+@@ -242,6 +242,32 @@ can support both NFS version 2 and the newer version 3.
+ Print the version of
+ .B rpc.mountd
+ and exit.
++.TP
++.B \-c " or " \-\-apply-root-cred
++When mountd is asked to allow a NFSv3 mount to a subdirectory of the
++exported directory, then it will check if the user asking to mount has
++lookup rights to the directories below that exported directory. When
++performing the check, mountd will apply any root squash or all squash
++rules that were specified for that client.
++
++Performing lookup checks as the user requires that the mountd daemon
++be run as root or that it be given CAP_SETUID and CAP_SETGID privileges
++so that it can change its own effective user and effective group settings.
++When troubleshooting, please also note that LSM frameworks such as SELinux
++can sometimes prevent the daemon from changing the effective user/groups
++despite the capability settings.
++
++In earlier versions of mountd, the same checks were performed using the
++mountd daemon's root privileges, meaning that it could authorise access
++to directories that are not normally accessible to the user requesting
++to mount them. This option enables that legacy behaviour.
++
++.BR Note:
++If there is a need to provide access to specific subdirectories that
++are not normally accessible to a client, it is always possible to add
++export entries that explicitly grant such access. That ability does
++not depend on this option being enabled.
++
+ .TP
+ .B \-g " or " \-\-manage-gids
+ Accept requests from the kernel to map user id numbers into  lists of
+-- 
+2.52.0
+

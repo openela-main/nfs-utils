@@ -1,0 +1,114 @@
+From c7d8779b71314afa5e6c529aae85da12ae250f70 Mon Sep 17 00:00:00 2001
+From: Scott Mayhew <smayhew@redhat.com>
+Date: Tue, 13 Jan 2026 14:00:19 -0500
+Subject: [PATCH 2/4] mountd: Separate lookup of the exported directory and the
+ mount path
+
+When the caller asks to mount a path that does not terminate with an
+exported directory, we want to split up the lookups so that we can
+look up the exported directory using the mountd privileged credential,
+and the remaining subdirectory lookups using the RPC caller's
+credential.
+---
+ utils/mountd/mountd.c | 61 ++++++++++++++++++++++++++++++++++++-------
+ 1 file changed, 52 insertions(+), 9 deletions(-)
+
+diff --git a/utils/mountd/mountd.c b/utils/mountd/mountd.c
+index 60f5e488..779f51b4 100644
+--- a/utils/mountd/mountd.c
++++ b/utils/mountd/mountd.c
+@@ -468,7 +468,10 @@ get_rootfh(struct svc_req *rqstp, dirpath *path, nfs_export **expret,
+ 	struct nfs_fh_len *fh;
+ 	char		rpath[MAXPATHLEN+1];
+ 	char		*p = *path;
++	char		*subpath;
+ 	char		buf[INET6_ADDRSTRLEN];
++	size_t		epathlen;
++	int		dirfd;
+ 
+ 	if (*p == '\0')
+ 		p = "/";
+@@ -488,12 +491,20 @@ get_rootfh(struct svc_req *rqstp, dirpath *path, nfs_export **expret,
+ 		*error = MNT3ERR_ACCES;
+ 		return NULL;
+ 	}
+-	if (stat(exp->m_export.e_path, &estb) < 0) {
+-		xlog(L_WARNING, "can't stat export point %s: %s",
++	dirfd = openat(AT_FDCWD, exp->m_export.e_path, O_PATH);
++	if (dirfd == -1) {
++		xlog(L_WARNING, "can't open export point %s: %s",
+ 		     p, strerror(errno));
+ 		*error = MNT3ERR_NOENT;
+ 		return NULL;
+ 	}
++	if (fstat(dirfd, &estb) == -1) {
++		xlog(L_WARNING, "can't stat export point %s: %s",
++		     p, strerror(errno));
++		*error = MNT3ERR_ACCES;
++		close(dirfd);
++		return NULL;
++	}
+ 	if (exp->m_export.e_mountpoint &&
+ 		   !is_mountpoint(exp->m_export.e_mountpoint[0]?
+ 				  exp->m_export.e_mountpoint:
+@@ -501,18 +512,50 @@ get_rootfh(struct svc_req *rqstp, dirpath *path, nfs_export **expret,
+ 		xlog(L_WARNING, "request to export an unmounted filesystem: %s",
+ 		     p);
+ 		*error = MNT3ERR_NOENT;
++		close(dirfd);
+ 		return NULL;
+ 	}
+ 
+-	if (stat(p, &stb) < 0) {
+-		xlog(L_WARNING, "can't stat exported dir %s: %s",
+-				p, strerror(errno));
+-		if (errno == ENOENT)
+-			*error = MNT3ERR_NOENT;
+-		else
+-			*error = MNT3ERR_ACCES;
++	epathlen = strlen(exp->m_export.e_path);
++	if (epathlen > strlen(p)) {
++		xlog(L_WARNING, "raced with change of exported path: %s", p);
++		*error = MNT3ERR_NOENT;
++		close(dirfd);
+ 		return NULL;
+ 	}
++	subpath = &p[epathlen];
++	while (*subpath == '/')
++		subpath++;
++	if (*subpath != '\0') {
++		int fd;
++
++		/* Just perform a lookup of the path */
++		fd = openat(dirfd, subpath, O_PATH);
++		close(dirfd);
++		if (fd == -1) {
++			xlog(L_WARNING, "can't open exported dir %s: %s", p,
++			     strerror(errno));
++			if (errno == ENOENT)
++				*error = MNT3ERR_NOENT;
++			else
++				*error = MNT3ERR_ACCES;
++			return NULL;
++		}
++		if (fstat(fd, &stb) == -1) {
++			xlog(L_WARNING, "can't open exported dir %s: %s", p,
++			     strerror(errno));
++			if (errno == ENOENT)
++				*error = MNT3ERR_NOENT;
++			else
++				*error = MNT3ERR_ACCES;
++			close(fd);
++			return NULL;
++		}
++		close(fd);
++	} else {
++		close(dirfd);
++		stb = estb;
++	}
+ 	if (!S_ISDIR(stb.st_mode) && !S_ISREG(stb.st_mode)) {
+ 		xlog(L_WARNING, "%s is not a directory or regular file", p);
+ 		*error = MNT3ERR_NOTDIR;
+-- 
+2.52.0
+

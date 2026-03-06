@@ -2,7 +2,7 @@ Summary: NFS utilities and supporting clients and daemons for the kernel NFS ser
 Name: nfs-utils
 URL: http://linux-nfs.org/
 Version: 2.3.3
-Release: 64%{?dist}
+Release: 68%{?dist}
 Epoch: 1
 
 # group all 32bit related archs
@@ -118,6 +118,12 @@ Patch060: nfs-utils-2.3.3-gssd-do-not-use-krb5_cc_initialize.patch
 Patch061: nfs-utils-2.3.3-nfsiostat-fixes.patch
 Patch062: nfs-utils-2.3.3-mountstats-fixes.patch
 Patch063: nfs-utils-2.3.3-nfs-man-rdirplus.patch
+Patch064: nfs-utils-2.3.3-nfsrahead-Modify-get_device_info-logic.patch
+Patch065: nfs-utils-2.3.3-gssd-protect-kerberos-ticket-cache-access.patch
+Patch066: nfs-utils-2.3.3-mountd-Minor-refactor-of-get_rootfh.patch
+Patch067: nfs-utils-2.3.3-mountd-Separate-lookup-of-the-exported-directory-and.patch
+Patch068: nfs-utils-2.3.3-support-Add-a-mini-library-to-extract-and-apply-RPC-.patch
+Patch069: nfs-utils-2.3.3-Fix-access-checks-when-mounting-subdirectories-in-NF.patch
 
 Patch100: nfs-utils-1.2.1-statdpath-man.patch
 Patch101: nfs-utils-1.2.1-exp-subtree-warn-off.patch
@@ -161,6 +167,7 @@ Requires: libnfsidmap libevent
 Requires: libtirpc >= 0.2.3-1 libblkid libcap libmount
 %{?systemd_requires}
 Requires: gssproxy => 0.7.0-3
+Requires: (selinux-policy >= 3.14.3-139.el8_10.2 if selinux-policy)
 
 %package -n libnfsidmap
 Summary: NFSv4 User and Group ID Mapping Library
@@ -396,6 +403,22 @@ fi
 %{_libdir}/libnfsidmap.so
 
 %changelog
+* Fri Feb 27 2026 Scott Mayhew <smayhew@redhat.com> 2.3.3-68
+- Add requires for selinux-policy (RHEL-127095)
+
+* Fri Jan 30 2026 Scott Mayhew <smayhew@redhat.com> 2.3.3-67
+- mountd: Minor refactor of get_rootfh() (RHEL-127095)
+- mountd: Separate lookup of the exported directory and the mount path (RHEL-127095)
+- support: Add a mini-library to extract and apply RPC credentials (RHEL-127095)
+- Fix access checks when mounting subdirectories in NFSv3 (RHEL-127095)
+  Resolves: CVE-2025-12801
+
+* Fri Jan  9 2026 Scott Mayhew <smayhew@redhat.com> 2.3.3-66
+- gssd: protect kerberos ticket cache access (RHEL-103627)
+
+* Mon Dec  8 2025 Steve Dickson <steved@redhat.com> 2.3.3-65
+- nfsrahead: modify get_device_info logic (RHEL-108924)
+
 * Tue May 20 2025 Scott Mayhew <smayhew@redhat.com> 2.3.3-64
 - update rdirplus documentation on nfs(5) man page (RHEL-91253)
 

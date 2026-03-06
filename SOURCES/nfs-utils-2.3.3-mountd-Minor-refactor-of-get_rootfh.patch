@@ -1,0 +1,70 @@
+From 71baef7f9d3e00ed8a1ec38c791aea5854c93eaf Mon Sep 17 00:00:00 2001
+From: Scott Mayhew <smayhew@redhat.com>
+Date: Tue, 13 Jan 2026 13:22:29 -0500
+Subject: [PATCH 1/4] mountd: Minor refactor of get_rootfh()
+
+Perform the mountpoint checks before checking the user path.
+---
+ utils/mountd/mountd.c | 32 ++++++++++++++++----------------
+ 1 file changed, 16 insertions(+), 16 deletions(-)
+
+diff --git a/utils/mountd/mountd.c b/utils/mountd/mountd.c
+index 2b342377..60f5e488 100644
+--- a/utils/mountd/mountd.c
++++ b/utils/mountd/mountd.c
+@@ -488,6 +488,22 @@ get_rootfh(struct svc_req *rqstp, dirpath *path, nfs_export **expret,
+ 		*error = MNT3ERR_ACCES;
+ 		return NULL;
+ 	}
++	if (stat(exp->m_export.e_path, &estb) < 0) {
++		xlog(L_WARNING, "can't stat export point %s: %s",
++		     p, strerror(errno));
++		*error = MNT3ERR_NOENT;
++		return NULL;
++	}
++	if (exp->m_export.e_mountpoint &&
++		   !is_mountpoint(exp->m_export.e_mountpoint[0]?
++				  exp->m_export.e_mountpoint:
++				  exp->m_export.e_path)) {
++		xlog(L_WARNING, "request to export an unmounted filesystem: %s",
++		     p);
++		*error = MNT3ERR_NOENT;
++		return NULL;
++	}
++
+ 	if (stat(p, &stb) < 0) {
+ 		xlog(L_WARNING, "can't stat exported dir %s: %s",
+ 				p, strerror(errno));
+@@ -502,12 +518,6 @@ get_rootfh(struct svc_req *rqstp, dirpath *path, nfs_export **expret,
+ 		*error = MNT3ERR_NOTDIR;
+ 		return NULL;
+ 	}
+-	if (stat(exp->m_export.e_path, &estb) < 0) {
+-		xlog(L_WARNING, "can't stat export point %s: %s",
+-		     p, strerror(errno));
+-		*error = MNT3ERR_NOENT;
+-		return NULL;
+-	}
+ 	if (estb.st_dev != stb.st_dev
+ 	    && !(exp->m_export.e_flags & NFSEXP_CROSSMOUNT)) {
+ 		xlog(L_WARNING, "request to export directory %s below nearest filesystem %s",
+@@ -515,16 +525,6 @@ get_rootfh(struct svc_req *rqstp, dirpath *path, nfs_export **expret,
+ 		*error = MNT3ERR_ACCES;
+ 		return NULL;
+ 	}
+-	if (exp->m_export.e_mountpoint &&
+-		   !is_mountpoint(exp->m_export.e_mountpoint[0]?
+-				  exp->m_export.e_mountpoint:
+-				  exp->m_export.e_path)) {
+-		xlog(L_WARNING, "request to export an unmounted filesystem: %s",
+-		     p);
+-		*error = MNT3ERR_NOENT;
+-		return NULL;
+-	}
+-
+ 	/* This will be a static private nfs_export with just one
+ 	 * address.  We feed it to kernel then extract the filehandle,
+ 	 */
+-- 
+2.52.0
+
