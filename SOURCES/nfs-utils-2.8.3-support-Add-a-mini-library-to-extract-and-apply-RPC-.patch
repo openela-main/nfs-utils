@@ -1,10 +1,10 @@
-From ad60c937751d26334306baa59541715dd5612d44 Mon Sep 17 00:00:00 2001
+From b14db7f1611968f35fec1d218face547b9dc561f Mon Sep 17 00:00:00 2001
 From: Scott Mayhew <smayhew@redhat.com>
 Date: Wed, 7 Jan 2026 08:36:35 -0500
 Subject: [PATCH 3/4] support: Add a mini-library to extract and apply RPC
  credentials
 
-JIRA: https://issues.redhat.com/browse/RHEL-127092
+JIRA: https://issues.redhat.com/browse/RHEL-127093
 
 Add server functionality to extract the credentials from the client RPC
 call, and apply them. This is needed in order to perform access checking

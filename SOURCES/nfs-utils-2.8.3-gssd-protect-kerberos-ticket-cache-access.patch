@@ -1,0 +1,52 @@
+From 8600bbb7727df779ba1104c9f0c574b06be116a3 Mon Sep 17 00:00:00 2001
+From: Olga Kornievskaia <okorniev@redhat.com>
+Date: Tue, 18 Nov 2025 10:23:27 -0500
+Subject: [nfs-utils PATCH] gssd: protect kerberos ticket cache access
+
+gssd_get_single_krb5_cred() is a function that's will (for when needed)
+send a TGT request to the KDC and then store it in a credential cache.
+If multiple threads (eg., parallel mounts) are making an upcall at the
+same time then getting creds and storing creds need to be serialized due
+to do kerberos API not being concurrency safe.
+
+Fixes: https://issues.redhat.com/browse/RHEL-103627
+Signed-off-by: Olga Kornievskaia <okorniev@redhat.com>
+Signed-off-by: Steve Dickson <steved@redhat.com>
+---
+ utils/gssd/krb5_util.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/utils/gssd/krb5_util.c b/utils/gssd/krb5_util.c
+index 09625fb9..137cffda 100644
+--- a/utils/gssd/krb5_util.c
++++ b/utils/gssd/krb5_util.c
+@@ -456,12 +456,14 @@ gssd_get_single_krb5_cred(krb5_context context,
+ 	krb5_get_init_creds_opt_set_tkt_life(opts, 5*60);
+ #endif
+ 
++	pthread_mutex_lock(&ple_lock);
+ 	if ((code = krb5_get_init_creds_opt_set_out_ccache(context, opts,
+ 							   ccache))) {
+ 		k5err = gssd_k5_err_msg(context, code);
+ 		printerr(1, "WARNING: %s while initializing ccache for "
+ 			 "principal '%s' using keytab '%s'\n", k5err,
+ 			 pname ? pname : "<unparsable>", kt_name);
++		pthread_mutex_unlock(&ple_lock);
+ 		goto out;
+ 	}
+ 	if ((code = krb5_get_init_creds_keytab(context, &my_creds, ple->princ,
+@@ -470,10 +472,10 @@ gssd_get_single_krb5_cred(krb5_context context,
+ 		printerr(1, "WARNING: %s while getting initial ticket for "
+ 			 "principal '%s' using keytab '%s'\n", k5err,
+ 			 pname ? pname : "<unparsable>", kt_name);
++		pthread_mutex_unlock(&ple_lock);
+ 		goto out;
+ 	}
+ 
+-	pthread_mutex_lock(&ple_lock);
+ 	ple->endtime = my_creds.times.endtime;
+ 	pthread_mutex_unlock(&ple_lock);
+ 
+-- 
+2.52.0
+

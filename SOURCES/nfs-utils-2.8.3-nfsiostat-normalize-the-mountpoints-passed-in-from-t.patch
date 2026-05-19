@@ -1,0 +1,35 @@
+From 03b9c540152b0630427056c5ffe7ea5f4a65cd3d Mon Sep 17 00:00:00 2001
+From: Scott Mayhew <smayhew@redhat.com>
+Date: Mon, 26 Jan 2026 08:28:41 -0500
+Subject: [nfs-utils PATCH] nfsiostat: normalize the mountpoints passed in from
+ the command line
+
+If the mountpoint passed in from the command line contains a trailing
+'/' character, then nfsiostat winds up printing statistics for all
+mounts instead of printing statistics for the specific mount that was
+requested.
+
+Signed-off-by: Scott Mayhew <smayhew@redhat.com>
+Signed-off-by: Steve Dickson <steved@redhat.com>
+---
+ tools/nfs-iostat/nfs-iostat.py | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/tools/nfs-iostat/nfs-iostat.py b/tools/nfs-iostat/nfs-iostat.py
+index e46b1a83..69d24a11 100755
+--- a/tools/nfs-iostat/nfs-iostat.py
++++ b/tools/nfs-iostat/nfs-iostat.py
+@@ -589,8 +589,8 @@ client are listed.
+ 
+     (options, args) = parser.parse_args(sys.argv)
+     for arg in args[1:]:
+-        if arg in mountstats:
+-            origdevices += [arg]
++        if os.path.normpath(arg) in mountstats:
++            origdevices += [os.path.normpath(arg)]
+         elif not interval_seen:
+             try:
+                 interval = int(arg)
+-- 
+2.52.0
+

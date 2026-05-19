@@ -1,9 +1,9 @@
-From 46ba09c2538512b86186600b7e6fbe68b80d6a92 Mon Sep 17 00:00:00 2001
+From 2bc184897232ab496784203d36cd7e3a1b702c67 Mon Sep 17 00:00:00 2001
 From: Scott Mayhew <smayhew@redhat.com>
 Date: Wed, 7 Jan 2026 08:36:42 -0500
 Subject: [PATCH 4/4] Fix access checks when mounting subdirectories in NFSv3
 
-JIRA: https://issues.redhat.com/browse/RHEL-127092
+JIRA: https://issues.redhat.com/browse/RHEL-127093
 
 If a NFSv3 client asks to mount a subdirectory of one of the exported
 directories, then apply the RPC credential together with any root

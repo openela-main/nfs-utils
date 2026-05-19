@@ -1,9 +1,9 @@
-From d595d260619c91ec4f0bc38f4b8d318a3dbd2d24 Mon Sep 17 00:00:00 2001
+From 43304635233e4937325e0244abac4d8c22130294 Mon Sep 17 00:00:00 2001
 From: Scott Mayhew <smayhew@redhat.com>
 Date: Wed, 7 Jan 2026 08:36:27 -0500
 Subject: [PATCH 1/4] mountd: Minor refactor of get_rootfh()
 
-JIRA: https://issues.redhat.com/browse/RHEL-127092
+JIRA: https://issues.redhat.com/browse/RHEL-127093
 
 Perform the mountpoint checks before checking the user path.
 

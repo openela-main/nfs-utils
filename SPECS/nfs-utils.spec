@@ -2,7 +2,7 @@ Summary: NFS utilities and supporting clients and daemons for the kernel NFS ser
 Name: nfs-utils
 URL: http://linux-nfs.org/
 Version: 2.8.3
-Release: 0%{?dist}.3
+Release: 5%{?dist}
 Epoch: 1
 
 # group all 32bit related archs
@@ -28,12 +28,16 @@ Patch008: nfs-utils-2.8.3-gssd-fix-the-possible-buffer-overflow-in-get_full_ho.p
 Patch009: nfs-utils-2.8.3-nfsdctl-Warning-Clean-Up.patch
 
 #
-# RHEL 10.1.z
+# RHEL 10.2
 #
-Patch010: nfs-utils-2.8.3-mountd-Minor-refactor-of-get_rootfh.patch
-Patch011: nfs-utils-2.8.3-mountd-Separate-lookup-of-the-exported-directory-and.patch
-Patch012: nfs-utils-2.8.3-support-Add-a-mini-library-to-extract-and-apply-RPC-.patch
-Patch013: nfs-utils-2.8.3-Fix-access-checks-when-mounting-subdirectories-in-NF.patch
+Patch010: nfs-utils-2.8.3-rpc-statd-service-dependency.patch
+Patch011: nfs-utils-2.8.3-nfsrahead-Modify-get_device_info-logic.patch
+Patch012: nfs-utils-2.8.3-gssd-protect-kerberos-ticket-cache-access.patch
+Patch013: nfs-utils-2.8.3-nfsiostat-normalize-the-mountpoints-passed-in-from-t.patch
+Patch014: nfs-utils-2.8.3-mountd-Minor-refactor-of-get_rootfh.patch
+Patch015: nfs-utils-2.8.3-mountd-Separate-lookup-of-the-exported-directory-and.patch
+Patch016: nfs-utils-2.8.3-support-Add-a-mini-library-to-extract-and-apply-RPC-.patch
+Patch017: nfs-utils-2.8.3-Fix-access-checks-when-mounting-subdirectories-in-NF.patch
 
 Patch100: nfs-utils-1.2.1-statdpath-man.patch
 Patch102: nfs-utils-1.2.5-idmap-errmsg.patch
@@ -79,8 +83,8 @@ Requires: libtirpc >= 0.2.3-1 libblkid libcap libmount
 Requires: gssproxy => 0.7.0-3
 Requires: rpcbind, sed, gawk, grep
 Requires: kmod, keyutils, quota
-Requires: (selinux-policy >= 42.1.7-1.el10_1.1 if selinux-policy)
 %{?systemd_requires}
+Requires: (selinux-policy >= 42.1.17-1.el10 if selinux-policy)
 
 %package -n nfs-utils-coreos
 Summary: Minimal NFS utilities for supporting clients
@@ -219,7 +223,6 @@ touch $RPM_BUILD_ROOT%{_sharedstatedir}/nfs/rmtab
 
 mkdir -p $RPM_BUILD_ROOT%{_sharedstatedir}/nfs/statd/sm
 mkdir -p $RPM_BUILD_ROOT%{_sharedstatedir}/nfs/statd/sm.bak
-mkdir -p $RPM_BUILD_ROOT%{_sharedstatedir}/nfs/v4recovery
 mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/exports.d
 
 mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/nfsmount.conf.d
@@ -299,7 +302,6 @@ rm -rf /etc/systemd/system/rpc-*.requires
 %files
 %config(noreplace) /etc/nfsmount.conf
 %dir %{_sysconfdir}/exports.d
-%dir %{_sharedstatedir}/nfs/v4recovery
 %dir %attr(555, root, root) %{_sharedstatedir}/nfs/rpc_pipefs
 %dir %{_sharedstatedir}/nfs
 %dir %{_libexecdir}/nfs-utils
@@ -408,7 +410,6 @@ rm -rf /etc/systemd/system/rpc-*.requires
 %files -n nfsv4-client-utils
 %config(noreplace) /etc/nfsmount.conf
 %config(noreplace) %{_sysconfdir}/nfs.conf
-%dir %{_sharedstatedir}/nfs/v4recovery
 %dir %attr(555, root, root) %{_sharedstatedir}/nfs/rpc_pipefs
 %dir %{_libexecdir}/nfs-utils
 %config(noreplace) %{_sysconfdir}/request-key.d/id_resolver.conf
@@ -449,15 +450,26 @@ rm -rf /etc/systemd/system/rpc-*.requires
 %{_mandir}/*/nfsiostat.8.gz
 
 %changelog
-* Wed Feb 18 2026 Scott Mayhew <smayhew@redhat.com> 2.8.3-3
-- Add requires for selinux-policy (RHEL-127092)
-
-* Fri Jan 16 2026 Scott Mayhew <smayhew@redhat.com> 2.8.3-2
-- mountd: Minor refactor of get_rootfh() (RHEL-127092)
-- mountd: Separate lookup of the exported directory and the mount path (RHEL-127092)
-- support: Add a mini-library to extract and apply RPC credentials (RHEL-127092)
-- Fix access checks when mounting subdirectories in NFSv3 (RHEL-127092)
+* Fri Mar  6 2026 Scott Mayhew <smayhew@redhat.com> 2.8.3-5
+- mountd: Minor refactor of get_rootfh() (RHEL-127093)
+- mountd: Separate lookup of the exported directory and the mount path (RHEL-127093)
+- support: Add a mini-library to extract and apply RPC credentials (RHEL-127093)
+- Fix access checks when mounting subdirectories in NFSv3 (RHEL-127093)
+- Add requires for selinux-policy (RHEL-127093)
   Resolves: CVE-2025-12801
+
+* Thu Feb  5 2026 Scott Mayhew <smayhew@redhat.com> 2.8.3-4
+- nfsiostat: normalize the mountpoints passed in from the command line (RHEL-90562)
+- Remove /var/lib/nfs/v4recovery (RHEL-137935)
+
+* Fri Jan  9 2026 Scott Mayhew <smayhew@redhat.com> 2.8.3-3
+- gssd: protect kerberos ticket cache access (RHEL-138461)
+
+* Tue Sep 23 2025 Steve Dickson <steved@redhat.com> 2.8.3-2
+- nfsrahead: modify get_device_info logic (RHEL-115964)
+
+* Thu Sep 18 2025 Scott Mayhew <smayhew@redhat.com> 2.8.3-1
+- Fix dependency definition in rpc-statd.service (RHEL-96937)
 
 * Tue Apr 29 2025 Scott Mayhew <smayhew@redhat.com> 2.8.3-0
 - Updated to nfs-utils-2-8-3 plus additional fixes from 2-8-4-rc1 (RHEL-88768)

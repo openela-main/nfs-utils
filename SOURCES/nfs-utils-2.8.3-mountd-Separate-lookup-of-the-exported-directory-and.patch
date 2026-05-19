@@ -1,10 +1,10 @@
-From f8fe0314138875f551147fa4275f8c0b3fe14d3a Mon Sep 17 00:00:00 2001
+From d24c9b1baf5ffcd036842f66f089c0d39fb3fee4 Mon Sep 17 00:00:00 2001
 From: Scott Mayhew <smayhew@redhat.com>
 Date: Wed, 7 Jan 2026 08:36:32 -0500
 Subject: [PATCH 2/4] mountd: Separate lookup of the exported directory and the
  mount path
 
-JIRA: https://issues.redhat.com/browse/RHEL-127092
+JIRA: https://issues.redhat.com/browse/RHEL-127093
 
 When the caller asks to mount a path that does not terminate with an
 exported directory, we want to split up the lookups so that we can
