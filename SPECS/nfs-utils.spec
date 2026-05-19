@@ -2,7 +2,7 @@ Summary: NFS utilities and supporting clients and daemons for the kernel NFS ser
 Name: nfs-utils
 URL: http://linux-nfs.org/
 Version: 2.5.4
-Release: 38%{?dist}.3
+Release: 42%{?dist}
 Epoch: 1
 
 # group all 32bit related archs
@@ -84,14 +84,17 @@ Patch036: nfs-utils-2.5.4-gssd-man-gssproxy.patch
 Patch037: nfs-utils-2.5.4-gssd-dup-cachecreds.patch
 
 #
-# RHEL9.7.z
+# RHEL9.8
 #
-Patch038: nfs-utils-2.5.4-Replace-statfs64-with-statfs.patch
-Patch039: nfs-utils-2.5.4-NFS-export-symlink-vulnerability-fix.patch
-Patch040: nfs-utils-2.5.4-mountd-Minor-refactor-of-get_rootfh.patch
-Patch041: nfs-utils-2.5.4-mountd-Separate-lookup-of-the-exported-directory-and.patch
-Patch042: nfs-utils-2.5.4-support-Add-a-mini-library-to-extract-and-apply-RPC-.patch
-Patch043: nfs-utils-2.5.4-Fix-access-checks-when-mounting-subdirectories-in-NF.patch
+Patch038: nfs-utils-2.5.4-rpc-statd-service-dependency.patch
+Patch039: nfs-utils-2.5.4-nfsrahead-Modify-get_device_info-logic.patch
+Patch040: nfs-utils-2.5.4-gssd-protect-kerberos-ticket-cache-access.patch
+Patch041: nfs-utils-2.5.4-Replace-statfs64-with-statfs.patch
+Patch042: nfs-utils-2.5.4-NFS-export-symlink-vulnerability-fix.patch
+Patch043: nfs-utils-2.5.4-mountd-Minor-refactor-of-get_rootfh.patch
+Patch044: nfs-utils-2.5.4-mountd-Separate-lookup-of-the-exported-directory-and.patch
+Patch045: nfs-utils-2.5.4-support-Add-a-mini-library-to-extract-and-apply-RPC-.patch
+Patch046: nfs-utils-2.5.4-Fix-access-checks-when-mounting-subdirectories-in-NF.patch
 
 Patch100: nfs-utils-1.2.1-statdpath-man.patch
 Patch101: nfs-utils-1.2.1-exp-subtree-warn-off.patch
@@ -138,8 +141,8 @@ Requires: libtirpc >= 0.2.3-1 libblkid libcap libmount
 Requires: gssproxy => 0.7.0-3
 Requires: rpcbind, sed, gawk, grep
 Requires: kmod, keyutils, quota, python3-pyyaml
-Requires: (selinux-policy >= 38.1.65-1.el9_7.1 if selinux-policy)
 %{?systemd_requires}
+Requires: (selinux-policy >= 38.1.75-1.el9 if selinux-policy)
 
 %package -n nfs-utils-coreos
 Summary: Minimal NFS utilities for supporting clients
@@ -539,17 +542,24 @@ fi
 %{_mandir}/*/nfsiostat.8.gz
 
 %changelog
-* Wed Feb 18 2026 Scott Mayhew <smayhew@redhat.com> 2.5.4-38.3
-- Add requires for selinux-policy (RHEL-127104)
-
-* Thu Jan 15 2026 Scott Mayhew <smayhew@redhat.com> 2.5.4-38.2
-- Replace statfs64 with statfs (RHEL-127104)
-- NFS export symlink vulnerability fix (RHEL-127104)
-- mountd: Minor refactor of get_rootfh() (RHEL-127104)
-- mountd: Separate lookup of the exported directory and the mount path (RHEL-127104)
-- support: Add a mini-library to extract and apply RPC credentials (RHEL-127104)
-- Fix access checks when mounting subdirectories in NFSv3 (RHEL-127104)
+* Fri Mar  6 2026 Scott Mayhew <smayhew@redhat.com> 2.5.4-42
+- Replace statfs64 with statfs (RHEL-127105)
+- NFS export symlink vulnerability fix (RHEL-127105)
+- mountd: Minor refactor of get_rootfh() (RHEL-127105)
+- mountd: Separate lookup of the exported directory and the mount path (RHEL-127105)
+- support: Add a mini-library to extract and apply RPC credentials (RHEL-127105)
+- Fix access checks when mounting subdirectories in NFSv3 (RHEL-127105)
+- Add requires for selinux-policy (RHEL-127105)
   Resolves: CVE-2025-12801
+
+* Fri Jan  9 2026 Scott Mayhew <smayhew@redhat.com> 2.5.4-41
+- gssd: protect kerberos ticket cache access (RHEL-138462)
+
+* Mon Dec  8 2025 Steve Dickson <steved@redhat.com> 2.5.4-40
+- nfsrahead: modify get_device_info logic (RHEL-134397)
+
+* Thu Sep 18 2025 Scott Mayhew <smayhew@redhat.com> 2.5.4-39
+- Fix dependency definition in rpc-statd.service (RHEL-116079)
 
 * Thu Jun 12 2025 Scott Mayhew <smayhew@redhat.com> 2.5.4-38
 - ensure services are stopped when nfs-utils is uninstalled (RHEL-88422)

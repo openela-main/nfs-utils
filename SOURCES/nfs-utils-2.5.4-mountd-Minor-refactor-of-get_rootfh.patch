@@ -1,9 +1,9 @@
-From 36af075e9dad40f6050bba78e771a55be88e66ac Mon Sep 17 00:00:00 2001
+From ff21df893d23a0d18bbf4d5b397f09a1bc434888 Mon Sep 17 00:00:00 2001
 From: Scott Mayhew <smayhew@redhat.com>
 Date: Tue, 6 Jan 2026 13:33:25 -0500
 Subject: [PATCH 3/6] mountd: Minor refactor of get_rootfh()
 
-JIRA: https://issues.redhat.com/browse/RHEL-127104
+JIRA: https://issues.redhat.com/browse/RHEL-127105
 
 Perform the mountpoint checks before checking the user path.
 
@@ -16,7 +16,7 @@ Signed-off-by: Scott Mayhew <smayhew@redhat.com>
  1 file changed, 17 insertions(+), 17 deletions(-)
 
 diff --git a/utils/mountd/mountd.c b/utils/mountd/mountd.c
-index bcf749f..c0017b0 100644
+index bcf749fa..c0017b01 100644
 --- a/utils/mountd/mountd.c
 +++ b/utils/mountd/mountd.c
 @@ -486,6 +486,23 @@ get_rootfh(struct svc_req *rqstp, dirpath *path, nfs_export **expret,

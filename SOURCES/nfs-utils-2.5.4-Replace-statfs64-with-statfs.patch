@@ -1,9 +1,9 @@
-From ed3a033f0c35a1ed7f34dba91da3ad0feebe002d Mon Sep 17 00:00:00 2001
+From f0f6a29eab7598983e5a2f1c576750bdab9088c4 Mon Sep 17 00:00:00 2001
 From: Scott Mayhew <smayhew@redhat.com>
 Date: Tue, 6 Jan 2026 13:25:32 -0500
 Subject: [PATCH 1/6] Replace statfs64 with statfs
 
-JIRA: https://issues.redhat.com/browse/RHEL-127104
+JIRA: https://issues.redhat.com/browse/RHEL-127105
 
 commit 2c0b524983925ebd6b8ab8b7952fba2aea41c94d
 Author: Khem Raj <raj.khem@gmail.com>
@@ -32,7 +32,7 @@ Signed-off-by: Scott Mayhew <smayhew@redhat.com>
  4 files changed, 24 insertions(+), 24 deletions(-)
 
 diff --git a/support/export/cache.c b/support/export/cache.c
-index 396b3b7..9354f71 100644
+index 396b3b73..9354f71d 100644
 --- a/support/export/cache.c
 +++ b/support/export/cache.c
 @@ -346,27 +346,27 @@ static int uuid_by_path(char *path, int type, size_t uuidlen, char *uuid)
@@ -71,7 +71,7 @@ index 396b3b7..9354f71 100644
  	if (type == 0 && rc == 0) {
  		const unsigned long *bad;
 diff --git a/support/include/nfsd_path.h b/support/include/nfsd_path.h
-index 3b73aad..aa1e1dd 100644
+index 3b73aadd..aa1e1dd0 100644
 --- a/support/include/nfsd_path.h
 +++ b/support/include/nfsd_path.h
 @@ -7,7 +7,7 @@
@@ -95,7 +95,7 @@ index 3b73aad..aa1e1dd 100644
  char *		nfsd_realpath(const char *path, char *resolved_path);
  
 diff --git a/support/misc/nfsd_path.c b/support/misc/nfsd_path.c
-index 65e53c1..c3dea4f 100644
+index 65e53c13..c3dea4f0 100644
 --- a/support/misc/nfsd_path.c
 +++ b/support/misc/nfsd_path.c
 @@ -184,46 +184,46 @@ nfsd_path_lstat(const char *pathname, struct stat *statbuf)
@@ -158,7 +158,7 @@ index 65e53c1..c3dea4f 100644
  
  struct nfsd_realpath_data {
 diff --git a/utils/exportfs/exportfs.c b/utils/exportfs/exportfs.c
-index a87a780..215037a 100644
+index a87a7806..215037a9 100644
 --- a/utils/exportfs/exportfs.c
 +++ b/utils/exportfs/exportfs.c
 @@ -513,7 +513,7 @@ validate_export(nfs_export *exp)

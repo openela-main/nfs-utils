@@ -1,0 +1,88 @@
+From df920ac19d2c54be63b34b39fe8f1ae141c60cc0 Mon Sep 17 00:00:00 2001
+From: Scott Mayhew <smayhew@redhat.com>
+Date: Wed, 10 Sep 2025 08:00:38 -0500
+Subject: [PATCH] rpc-statd.service: define dependency on both rpcbind.service
+ and rpcbind.socket
+
+In 91da135f ("systemd unit files: fix up dependencies on rpcbind"),
+Neil laid out the rationale for how the nfs services should define their
+dependencies on rpcbind.  In a nutshell:
+
+1. Dependencies should only be defined using rpcbind.socket
+2. Ordering for dependencies should only be defined usint "After="
+3. nfs-server.service should use "Wants=rpcbind.socket", to allow
+   rpcbind.socket to be masked in NFSv4-only setups.
+4. rpc-statd.service should use "Requires=rpcbind.socket", as rpc.statd
+   is useless if it can't register with rpcbind.
+
+Then in https://bugzilla.redhat.com/show_bug.cgi?id=2100395, Ben noted
+that due to the way the dependencies are ordered, when 'systemctl stop
+rpcbind.socket' is run, systemd first sends SIGTERM to rpcbind, then
+SIGTERM to rpc.statd.  On SIGTERM, rpcbind tears down /var/run/rpcbind.sock.
+However, rpc-statd on SIGTERM attempts to unregister from rpcbind.  This
+results in a long delay:
+
+[root@rawhide ~]# time systemctl restart rpcbind.socket
+
+real	1m0.147s
+user	0m0.004s
+sys	0m0.003s
+
+8a835ceb ("rpc-statd.service: Stop rpcbind and rpc.stat in an exit race")
+fixed this by changing the dependency in rpc-statd.service to use
+"After=rpcbind.service", bending rule #1 from above.
+
+Yongcheng recently noted that when runnnig the following test:
+
+[root@rawhide ~]# for i in `seq 10`; do systemctl reset-failed; \
+	systemctl stop rpcbind rpcbind.socket ; systemctl restart nfs-server ; \
+	systemctl status rpc-statd; done
+
+rpc-statd.service would often fail to start:
+rpc.statd[29938]: Version 2.8.2 starting
+rpc.statd[29938]: Flags: TI-RPC
+rpc.statd[29938]: Failed to register (statd, 1, udp): svc_reg() err: RPC: Remote system error - Connection refused
+rpc.statd[29938]: Failed to register (statd, 1, tcp): svc_reg() err: RPC: Success
+rpc.statd[29938]: Failed to register (statd, 1, udp6): svc_reg() err: RPC: Success
+rpc.statd[29938]: Failed to register (statd, 1, tcp6): svc_reg() err: RPC: Success
+rpc.statd[29938]: failed to create RPC listeners, exiting
+rpc-statd.service: Control process exited, code=exited, status=1/FAILURE
+rpc-statd.service: Failed with result 'exit-code'.
+systemd[1]: Failed to start rpc-statd.service - NFS status monitor for NFSv2/3 locking..
+
+Define the dependency on both rpcbind.service and rpcbind.socket.  As
+Neil explains:
+
+"After" declarations only have effect if the units are in the same
+transaction.  If the Unit is not being started or stopped, the After
+declaration has no effect.
+
+So on startup, this will ensure rpcbind.socket is started before
+rpc-statd.service.  On shutdown in a transaction that stops both
+rpc-statd.service and rpcbind.service, rpcbind.service won't be
+stopped until after rpc-statd.service is stopped.
+
+Fixes: https://issues.redhat.com/browse/RHEL-96937
+Reviewed-by: NeilBrown <neil@brown.name>
+Signed-off-by: Scott Mayhew <smayhew@redhat.com>
+Signed-off-by: Steve Dickson <steved@redhat.com>
+---
+ systemd/rpc-statd.service | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/systemd/rpc-statd.service b/systemd/rpc-statd.service
+index 660ed861..96fd500d 100644
+--- a/systemd/rpc-statd.service
++++ b/systemd/rpc-statd.service
+@@ -6,7 +6,7 @@ Conflicts=umount.target
+ Requires=nss-lookup.target rpcbind.socket
+ Wants=network-online.target
+ Wants=rpc-statd-notify.service
+-After=network-online.target nss-lookup.target rpcbind.service
++After=network-online.target nss-lookup.target rpcbind.service rpcbind.socket
+ 
+ PartOf=nfs-utils.service
+ IgnoreOnIsolate=yes
+-- 
+2.51.0
+

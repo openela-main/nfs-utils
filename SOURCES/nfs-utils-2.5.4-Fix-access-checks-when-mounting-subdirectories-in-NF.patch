@@ -1,9 +1,9 @@
-From 067c3c85ab2fd96a4851a9a0b1fa0ddd1d970e6d Mon Sep 17 00:00:00 2001
+From ff89a25378179d2a4dc25f6fcfcc1041b29c5407 Mon Sep 17 00:00:00 2001
 From: Scott Mayhew <smayhew@redhat.com>
 Date: Tue, 6 Jan 2026 13:42:46 -0500
 Subject: [PATCH 6/6] Fix access checks when mounting subdirectories in NFSv3
 
-JIRA: https://issues.redhat.com/browse/RHEL-127104
+JIRA: https://issues.redhat.com/browse/RHEL-127105
 
 If a NFSv3 client asks to mount a subdirectory of one of the exported
 directories, then apply the RPC credential together with any root
@@ -22,7 +22,7 @@ Signed-off-by: Scott Mayhew <smayhew@redhat.com>
  5 files changed, 91 insertions(+), 5 deletions(-)
 
 diff --git a/nfs.conf b/nfs.conf
-index d32f067..4251815 100644
+index d32f067e..42518150 100644
 --- a/nfs.conf
 +++ b/nfs.conf
 @@ -46,6 +46,7 @@ use-gss-proxy=1
@@ -34,7 +34,7 @@ index d32f067..4251815 100644
  # descriptors=0
  # port=0
 diff --git a/support/include/nfsd_path.h b/support/include/nfsd_path.h
-index 3e5a2f5..06c0f2f 100644
+index 3e5a2f5d..06c0f2f4 100644
 --- a/support/include/nfsd_path.h
 +++ b/support/include/nfsd_path.h
 @@ -9,6 +9,7 @@
@@ -66,7 +66,7 @@ index 3e5a2f5..06c0f2f 100644
 +}
  #endif
 diff --git a/support/misc/nfsd_path.c b/support/misc/nfsd_path.c
-index dfe88e4..6466666 100644
+index dfe88e4f..6466666d 100644
 --- a/support/misc/nfsd_path.c
 +++ b/support/misc/nfsd_path.c
 @@ -17,6 +17,7 @@
@@ -130,7 +130,7 @@ index dfe88e4..6466666 100644
  		errno = open_buf.res_error;
  	return open_buf.res_fd;
 diff --git a/utils/mountd/mountd.c b/utils/mountd/mountd.c
-index 311e284..b989a8b 100644
+index 311e284d..b989a8b9 100644
 --- a/utils/mountd/mountd.c
 +++ b/utils/mountd/mountd.c
 @@ -32,6 +32,7 @@
@@ -210,7 +210,7 @@ index 311e284..b989a8b 100644
  			break;
  		case '?':
 diff --git a/utils/mountd/mountd.man b/utils/mountd/mountd.man
-index c85c5d6..24e750a 100644
+index c85c5d61..24e750a6 100644
 --- a/utils/mountd/mountd.man
 +++ b/utils/mountd/mountd.man
 @@ -242,6 +242,32 @@ can support both NFS version 2 and the newer version 3.

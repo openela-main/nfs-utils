@@ -1,10 +1,10 @@
-From 36e04aded6ade43f2b262d7c893362c3028148df Mon Sep 17 00:00:00 2001
+From b7ea177d6e556fa8e3cf3e0fe27122ec2b80e8ad Mon Sep 17 00:00:00 2001
 From: Scott Mayhew <smayhew@redhat.com>
 Date: Tue, 6 Jan 2026 13:36:37 -0500
 Subject: [PATCH 5/6] support: Add a mini-library to extract and apply RPC
  credentials
 
-JIRA: https://issues.redhat.com/browse/RHEL-127104
+JIRA: https://issues.redhat.com/browse/RHEL-127105
 Conflicts: support/nfs/Makefile.am - context diff because RHEL9 does not
 	have d214e3aa ("Implement reexport= export option")
 
@@ -30,7 +30,7 @@ Signed-off-by: Scott Mayhew <smayhew@redhat.com>
  create mode 100644 support/nfs/ucred.c
 
 diff --git a/aclocal/libtirpc.m4 b/aclocal/libtirpc.m4
-index 4379b14..2a3d3b5 100644
+index 4379b14d..2a3d3b5c 100644
 --- a/aclocal/libtirpc.m4
 +++ b/aclocal/libtirpc.m4
 @@ -31,6 +31,18 @@ AC_DEFUN([AC_LIBTIRPC], [
@@ -53,7 +53,7 @@ index 4379b14..2a3d3b5 100644
    AC_SUBST(LIBTIRPC)
  
 diff --git a/support/include/Makefile.am b/support/include/Makefile.am
-index 1373891..631a84f 100644
+index 1373891a..631a84f8 100644
 --- a/support/include/Makefile.am
 +++ b/support/include/Makefile.am
 @@ -10,6 +10,7 @@ noinst_HEADERS = \
@@ -66,7 +66,7 @@ index 1373891..631a84f 100644
  	nfsrpc.h \
 diff --git a/support/include/nfs_ucred.h b/support/include/nfs_ucred.h
 new file mode 100644
-index 0000000..d58b61e
+index 00000000..d58b61e4
 --- /dev/null
 +++ b/support/include/nfs_ucred.h
 @@ -0,0 +1,44 @@
@@ -115,7 +115,7 @@ index 0000000..d58b61e
 +
 +#endif /* _NFS_UCRED_H */
 diff --git a/support/misc/Makefile.am b/support/misc/Makefile.am
-index f9993e3..7ea2d79 100644
+index f9993e3a..7ea2d798 100644
 --- a/support/misc/Makefile.am
 +++ b/support/misc/Makefile.am
 @@ -2,6 +2,6 @@
@@ -128,7 +128,7 @@ index f9993e3..7ea2d79 100644
  MAINTAINERCLEANFILES = Makefile.in
 diff --git a/support/misc/ucred.c b/support/misc/ucred.c
 new file mode 100644
-index 0000000..92d9791
+index 00000000..92d97912
 --- /dev/null
 +++ b/support/misc/ucred.c
 @@ -0,0 +1,162 @@
@@ -295,7 +295,7 @@ index 0000000..92d9791
 +	return ret;
 +}
 diff --git a/support/nfs/Makefile.am b/support/nfs/Makefile.am
-index 67e3a8e..d7ba72a 100644
+index 67e3a8e1..d7ba72a7 100644
 --- a/support/nfs/Makefile.am
 +++ b/support/nfs/Makefile.am
 @@ -7,7 +7,7 @@ libnfs_la_SOURCES = exports.c rmtab.c xio.c rpcmisc.c rpcdispatch.c \
@@ -309,7 +309,7 @@ index 67e3a8e..d7ba72a 100644
  libnfsconf_la_SOURCES = conffile.c xlog.c
 diff --git a/support/nfs/ucred.c b/support/nfs/ucred.c
 new file mode 100644
-index 0000000..6ea8efd
+index 00000000..6ea8efdf
 --- /dev/null
 +++ b/support/nfs/ucred.c
 @@ -0,0 +1,147 @@
