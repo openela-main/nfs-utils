@@ -2,7 +2,7 @@ Summary: NFS utilities and supporting clients and daemons for the kernel NFS ser
 Name: nfs-utils
 URL: http://linux-nfs.org/
 Version: 2.3.3
-Release: 68%{?dist}
+Release: 69%{?dist}
 Epoch: 1
 
 # group all 32bit related archs
@@ -124,6 +124,9 @@ Patch066: nfs-utils-2.3.3-mountd-Minor-refactor-of-get_rootfh.patch
 Patch067: nfs-utils-2.3.3-mountd-Separate-lookup-of-the-exported-directory-and.patch
 Patch068: nfs-utils-2.3.3-support-Add-a-mini-library-to-extract-and-apply-RPC-.patch
 Patch069: nfs-utils-2.3.3-Fix-access-checks-when-mounting-subdirectories-in-NF.patch
+Patch070: nfs-utils-2.3.3-nfsrahead-enable-event-driven-mountinfo-monitoring-a.patch
+Patch071: nfs-utils-2.3.3-nfsrahead-zero-initialise-device_info-struct.patch
+Patch072: nfs-utils-2.3.3-nfsrahead-quieten-misleading-error-for-non-NFS-block.patch
 
 Patch100: nfs-utils-1.2.1-statdpath-man.patch
 Patch101: nfs-utils-1.2.1-exp-subtree-warn-off.patch
@@ -403,6 +406,11 @@ fi
 %{_libdir}/libnfsidmap.so
 
 %changelog
+* Thu Mar 19 2026 Scott Mayhew <smayhew@redhat.com> 2.3.3-69
+- nfsrahead: enable event-driven mountinfo monitoring and skip non-NFS devices (RHEL-150760)
+- nfsrahead: zero-initialise device_info struct (RHEL-150760)
+- nfsrahead: quieten misleading error for non-NFS block devices (RHEL-150760)
+
 * Fri Feb 27 2026 Scott Mayhew <smayhew@redhat.com> 2.3.3-68
 - Add requires for selinux-policy (RHEL-127095)
 
