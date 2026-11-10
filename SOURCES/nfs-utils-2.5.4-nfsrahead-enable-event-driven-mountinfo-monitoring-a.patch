@@ -1,0 +1,133 @@
+From 0f5fe65d83f7455112aea82bf96f99523cb03ca7 Mon Sep 17 00:00:00 2001
+From: Aaron Tomlin <atomlin@atomlin.com>
+Date: Fri, 6 Mar 2026 17:01:44 -0500
+Subject: [PATCH] nfsrahead: enable event-driven mountinfo monitoring and skip
+ non-NFS devices
+
+The nfsrahead utility relies on parsing "/proc/self/mountinfo" to
+correlate a device number with a specific NFS mount point. However, due
+to the asynchronous nature of system initialisation, the relevant entry
+in mountinfo may not be immediately available when the tool is executed.
+
+Currently, the utility employs a naive polling mechanism, retrying the
+search five times with a fixed 50ms delay (totalling 250ms). This
+approach proves brittle on systems under heavy load or during
+distinctively slow boot sequences.
+
+To mitigate this race condition and improve robustness, update
+get_device_info() to utilise the libmount monitoring API.
+
+The new implementation introduces the following logic:
+
+    1.  Initialises a monitor on /proc/self/mountinfo using
+        mnt_new_monitor().
+
+    2.  Replaces the fixed polling loop with mnt_monitor_wait().
+
+    3.  Increases the maximum wait time to 10 seconds (MNT_NM_TIMEOUT).
+
+    4.  Introduces a fast-path rejection mechanism. NFS backing devices are
+        allocated from the kernel's unnamed block device pool (major number
+        0). While some local multi-device filesystems (such as Btrfs) also
+        utilise anonymous device numbers, physical hardware block devices
+        (e.g., sda, nvme) always possess specific, non-zero major numbers.
+        By instantly exiting with -ENODEV for any device string not
+        beginning with "0:", we safely bypass the monitor for physical
+        drives, preventing the exhaustion of udev worker threads.
+        See set_anon_super() and get_anon_bdev().
+
+    5.  Implements strict monotonic deadline tracking within the monitor
+        loop to prevent indefinite blocking.
+
+Fixes: 2b62ac4c ("nfsrahead: enable event-driven mountinfo monitoring")
+Reported-by: Yi Zhang <yi.zhang@redhat.com>
+Link: https://lore.kernel.org/linux-block/CAHj4cs8URj2fJ7KyP9ViAm6npVOaMiAErnw2uFyPYEU2wb7G_w@mail.gmail.com/T/#t
+Signed-off-by: Aaron Tomlin <atomlin@atomlin.com>
+Signed-off-by: Steve Dickson <steved@redhat.com>
+---
+ tools/nfsrahead/main.c | 55 +++++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 54 insertions(+), 1 deletion(-)
+
+diff --git a/tools/nfsrahead/main.c b/tools/nfsrahead/main.c
+index b7b889ff..78cd2581 100644
+--- a/tools/nfsrahead/main.c
++++ b/tools/nfsrahead/main.c
+@@ -3,6 +3,7 @@
+ #include <stdlib.h>
+ #include <errno.h>
+ #include <unistd.h>
++#include <time.h>
+ 
+ #include <libmount/libmount.h>
+ #include <sys/sysmacros.h>
+@@ -17,6 +18,8 @@
+ #define CONF_NAME "nfsrahead"
+ #define NFS_DEFAULT_READAHEAD 128
+ 
++#define MNT_NM_TIMEOUT 10000
++
+ /* Device information from the system */
+ struct device_info {
+ 	char *device_number;
+@@ -117,7 +120,57 @@ out_free_device_info:
+ 
+ static int get_device_info(const char *device_number, struct device_info *device_info)
+ {
+-	int ret = get_mountinfo(device_number, device_info, MOUNTINFO_PATH);
++	int ret;
++	struct libmnt_monitor *mn = NULL;
++	struct timespec start, now;
++	int remaining_ms = MNT_NM_TIMEOUT;
++
++	/*
++	 * Fast-path rejection:
++	 * NFS backing devices always use the anonymous block device major number (0).
++	 * If the device number does not start with "0:", it is a physical block device
++	 * and will never be an NFS mount. Exit immediately to prevent blocking udev.
++	 */
++	if (strncmp(device_number, "0:", 2) != 0)
++		return -ENODEV;
++
++	ret = get_mountinfo(device_number, device_info, MOUNTINFO_PATH);
++	if (ret == 0)
++		return 0;
++
++	mn = mnt_new_monitor();
++	if (!mn)
++		goto fallback;
++
++	if (mnt_monitor_enable_kernel(mn, 1) < 0) {
++		mnt_unref_monitor(mn);
++		goto fallback;
++	}
++
++	clock_gettime(CLOCK_MONOTONIC, &start);
++
++	while (remaining_ms > 0) {
++		int rc = mnt_monitor_wait(mn, remaining_ms);
++		if (rc > 0) {
++			ret = get_mountinfo(device_number, device_info, MOUNTINFO_PATH);
++			if (ret == 0) {
++				mnt_unref_monitor(mn);
++				return 0;
++			}
++		} else {
++			break;
++		}
++
++		clock_gettime(CLOCK_MONOTONIC, &now);
++		long elapsed_ms = (now.tv_sec - start.tv_sec) * 1000 +
++				  (now.tv_nsec - start.tv_nsec) / 1000000;
++		remaining_ms = MNT_NM_TIMEOUT - elapsed_ms;
++	}
++
++	mnt_unref_monitor(mn);
++	return ret;
++
++fallback:
+ 	for (int retry_count = 0; retry_count < 5 && ret != 0; retry_count++) {
+ 		usleep(50000);
+ 		ret = get_mountinfo(device_number, device_info, MOUNTINFO_PATH);
+-- 
+2.43.7
+

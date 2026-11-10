@@ -2,7 +2,7 @@ Summary: NFS utilities and supporting clients and daemons for the kernel NFS ser
 Name: nfs-utils
 URL: http://linux-nfs.org/
 Version: 2.5.4
-Release: 42%{?dist}
+Release: 45%{?dist}
 Epoch: 1
 
 # group all 32bit related archs
@@ -95,6 +95,15 @@ Patch043: nfs-utils-2.5.4-mountd-Minor-refactor-of-get_rootfh.patch
 Patch044: nfs-utils-2.5.4-mountd-Separate-lookup-of-the-exported-directory-and.patch
 Patch045: nfs-utils-2.5.4-support-Add-a-mini-library-to-extract-and-apply-RPC-.patch
 Patch046: nfs-utils-2.5.4-Fix-access-checks-when-mounting-subdirectories-in-NF.patch
+
+#
+# RHEL9.9
+#
+Patch047: nfs-utils-2.5.4-nfsrahead-enable-event-driven-mountinfo-monitoring-a.patch
+Patch048: nfs-utils-2.5.4-nfsrahead-zero-initialise-device_info-struct.patch
+Patch049: nfs-utils-2.5.4-nfsrahead-quieten-misleading-error-for-non-NFS-block.patch
+Patch050: nfs-utils-2.5.4-export-Fix-rootdir-corner-case-in-next_mnt.patch
+Patch051: nfs-utils-2.5.4-Pass-ignore_hosts-to-export_create-in-export_read.patch
 
 Patch100: nfs-utils-1.2.1-statdpath-man.patch
 Patch101: nfs-utils-1.2.1-exp-subtree-warn-off.patch
@@ -542,6 +551,17 @@ fi
 %{_mandir}/*/nfsiostat.8.gz
 
 %changelog
+* Mon Aug  3 2026 Scott Mayhew <smayhew@redhat.com> 2.5.4-45
+-Pass ignore_hosts to export_create() in export_read() (RHEL-186461)
+
+* Thu Jul  2 2026 Scott Mayhew <smayhew@redhat.com> 2.5.4-44
+- export: Fix rootdir corner case in next_mnt() (RHEL-182520)
+
+* Mon Apr  6 2026 Scott Mayhew <smayhew@redhat.com> 2.5.4-43
+- nfsrahead: enable event-driven mountinfo monitoring and skip non-NFS devices (RHEL-158527)
+- nfsrahead: zero-initialise device_info struct (RHEL-158527)
+- nfsrahead: quieten misleading error for non-NFS block devices (RHEL-158527)
+
 * Fri Mar  6 2026 Scott Mayhew <smayhew@redhat.com> 2.5.4-42
 - Replace statfs64 with statfs (RHEL-127105)
 - NFS export symlink vulnerability fix (RHEL-127105)
