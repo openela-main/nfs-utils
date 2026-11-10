@@ -2,7 +2,7 @@ Summary: NFS utilities and supporting clients and daemons for the kernel NFS ser
 Name: nfs-utils
 URL: http://linux-nfs.org/
 Version: 2.8.3
-Release: 5%{?dist}
+Release: 9%{?dist}
 Epoch: 1
 
 # group all 32bit related archs
@@ -38,6 +38,17 @@ Patch014: nfs-utils-2.8.3-mountd-Minor-refactor-of-get_rootfh.patch
 Patch015: nfs-utils-2.8.3-mountd-Separate-lookup-of-the-exported-directory-and.patch
 Patch016: nfs-utils-2.8.3-support-Add-a-mini-library-to-extract-and-apply-RPC-.patch
 Patch017: nfs-utils-2.8.3-Fix-access-checks-when-mounting-subdirectories-in-NF.patch
+
+#
+# RHEL 10.3
+#
+Patch018: nfs-utils-2.8.3-nfsdctl-ignore-ipv6-listener-creation-error.patch
+Patch019: nfs-utils-2.8.3-nfsdclnts-fix-display-of-stateids-where-the-kernel-d.patch
+Patch020: nfs-utils-2.8.3-nfsrahead-enable-event-driven-mountinfo-monitoring-a.patch
+Patch021: nfs-utils-2.8.3-nfsrahead-zero-initialise-device_info-struct.patch
+Patch022: nfs-utils-2.8.3-nfsrahead-quieten-misleading-error-for-non-NFS-block.patch
+Patch023: nfs-utils-2.8.3-nfsd-don-t-assume-service-is-running-when-setting-th.patch
+Patch024: nfs-utils-2.8.3-Pass-ignore_hosts-to-export_create-in-export_read.patch
 
 Patch100: nfs-utils-1.2.1-statdpath-man.patch
 Patch102: nfs-utils-1.2.5-idmap-errmsg.patch
@@ -279,6 +290,12 @@ fi
 
 %preun
 %systemd_preun nfs-client.target nfs-server.service
+%systemd_preun auth-rpcgss-module.service
+%systemd_preun fsidd.service
+%systemd_preun nfs-blkmap.service
+%systemd_preun rpc-gssd.service
+%systemd_preun rpc-statd-notify.service
+%systemd_preun var-lib-nfs-rpc_pipefs.mount
 if [ $1 -eq 0 ]; then
     : >%{_localstatedir}/lib/rpm-state/nfs-server.cleanup
 fi
@@ -450,6 +467,22 @@ rm -rf /etc/systemd/system/rpc-*.requires
 %{_mandir}/*/nfsiostat.8.gz
 
 %changelog
+* Mon Aug  3 2026 Scott Mayhew <smayhew@redhat.com> 2.8.3-9
+- nfsd: don't assume service is running when setting thread count to 0 (RHEL-174806)
+- Pass ignore_hosts to export_create() in export_read() (RHEL-223703)
+
+* Wed Jul  1 2026 Scott Mayhew <smayhew@redhat.com> 2.8.3-8
+- Ensure services are stopped when nfs-utils is uninstalled (RHEL-186341)
+
+* Mon Apr  6 2026 Scott Mayhew <smayhew@redhat.com> 2.8.3-7
+- nfsrahead: enable event-driven mountinfo monitoring and skip non-NFS devices (RHEL-158528)
+- nfsrahead: zero-initialise device_info struct (RHEL-158528)
+- nfsrahead: quieten misleading error for non-NFS block devices (RHEL-158528)
+
+* Thu Mar 19 2026 Scott Mayhew <smayhew@redhat.com> 2.8.3-6
+- nfsdctl: ignore ipv6 listener creation error (RHEL-71352)
+- nfsdclnts: fix display of stateids where the kernel doesn't provide the superblock (RHEL-151444)
+
 * Fri Mar  6 2026 Scott Mayhew <smayhew@redhat.com> 2.8.3-5
 - mountd: Minor refactor of get_rootfh() (RHEL-127093)
 - mountd: Separate lookup of the exported directory and the mount path (RHEL-127093)

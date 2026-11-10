@@ -1,0 +1,63 @@
+From 3b7de50fe8f59c64762a015693b705db5d0f15e7 Mon Sep 17 00:00:00 2001
+From: Olga Kornievskaia <okorniev@redhat.com>
+Date: Sun, 18 Jan 2026 14:30:45 -0500
+Subject: [nfs-utils PATCH] nfsdctl: ignore ipv6 listener creation error
+
+If ipv6 is not supported by the kernel and during the nfsd start
+we are trying to create an ipv6 listener, ignore the error (this
+restores how nfsd handled this failure).
+
+Fixes: 8b02f0d5590e ("nfsdctl: cleanup listeners if some failed")
+Signed-off-by: Olga Kornievskaia <okorniev@redhat.com>
+Signed-off-by: Steve Dickson <steved@redhat.com>
+---
+ utils/nfsdctl/nfsdctl.c | 19 ++++++++++++++++++-
+ 1 file changed, 18 insertions(+), 1 deletion(-)
+
+diff --git a/utils/nfsdctl/nfsdctl.c b/utils/nfsdctl/nfsdctl.c
+index e7a0e124..4a6ba1d6 100644
+--- a/utils/nfsdctl/nfsdctl.c
++++ b/utils/nfsdctl/nfsdctl.c
+@@ -967,6 +967,17 @@ static void print_listeners(void)
+ 	}
+ }
+ 
++static bool ipv6_is_enabled(void)
++{
++	int s;
++
++	s = socket(AF_INET6, SOCK_STREAM, 0);
++	if (s < 0)
++		return false;
++	close(s);
++	return true;
++}
++
+ /*
+  * Format is <+/-><netid>:<address>:port
+  *
+@@ -1081,7 +1092,8 @@ static int update_listeners(const char *str)
+ 					continue;
+ 			case AF_INET6:
+ 				if (r6->sin6_port != l6->sin6_port ||
+-				    memcmp(&r6->sin6_addr, &l6->sin6_addr, sizeof(l6->sin6_addr)))
++				    memcmp(&r6->sin6_addr, &l6->sin6_addr, sizeof(l6->sin6_addr)) ||
++				    !ipv6_is_enabled())
+ 					continue;
+ 			default:
+ 
+@@ -1127,6 +1139,11 @@ static int set_listeners(struct nl_sock *sock)
+ 		struct server_socket *sock = &nfsd_sockets[i];
+ 		struct nlattr *a;
+ 
++		if (sock->ss.ss_family == AF_INET6 && !ipv6_is_enabled()) {
++			xlog(L_WARNING, "IPv6 isn't enabled, skip IPv6 "
++					"listener\n");
++			continue;
++		}
+ 		if (sock->ss.ss_family == 0)
+ 			break;
+ 
+-- 
+2.52.0
+

@@ -1,0 +1,39 @@
+From b59edc685f77d7c282a1dfca4187ebb703590cb6 Mon Sep 17 00:00:00 2001
+From: Frank Sorenson <sorenson@redhat.com>
+Date: Fri, 6 Mar 2026 17:04:20 -0500
+Subject: [nfs-utils PATCH] nfsdclnts: fix display of stateids where the kernel
+ doesn't provide the superblock
+
+If the stateid's file can't be found, the kernel will skip printing
+the superblock and filename in the 'states' procfile.  When this
+happens, nfsdclnts crashes trying to reference the non-existent
+superblock key while getting the inode.
+
+Fix this by setting the inode field to 'N/A' when the superblock
+isn't present, as is done with other fields which may be missing.
+
+Signed-off-by: Frank Sorenson <sorenson@redhat.com>
+Signed-off-by: Steve Dickson <steved@redhat.com>
+---
+ tools/nfsdclnts/nfsdclnts.py | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/tools/nfsdclnts/nfsdclnts.py b/tools/nfsdclnts/nfsdclnts.py
+index b7280f2c..183a02ee 100755
+--- a/tools/nfsdclnts/nfsdclnts.py
++++ b/tools/nfsdclnts/nfsdclnts.py
+@@ -87,7 +87,10 @@ def printer(data_list, argument):
+     client_info = file_to_dict(client_info_path)
+     for i in data_list:
+         for key in i:
+-            inode = i[key]['superblock'].split(':')[-1]
++            try:
++                inode = i[key]['superblock'].split(':')[-1]
++            except:
++                inode = 'N/A'
+             # The ip address is quoted, so we dequote it.
+             try:
+                 client_ip = client_info['address'][1:-1]
+-- 
+2.52.0
+
